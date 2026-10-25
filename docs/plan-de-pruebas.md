@@ -21,6 +21,7 @@ Red: testnet. Los tests unitarios se ejecutan en local con cargo test.
 | 13 | Pagar hito ya reembolsado | Verificador | Falla | No |
 | 14 | Registrar evidencia sin ser el estudiante | Otro | Falla | No |
 | 15 | Beca con varios hitos: pagar uno y reembolsar otro | Varios | Saldos correctos | No |
+| 16 | Crear beca con un token distinto de USDCDEMO | Donante | Funciona igual (el contrato no depende de un token concreto) | No |
 
 ## Propiedades que siempre deben cumplirse
 
@@ -29,3 +30,8 @@ Red: testnet. Los tests unitarios se ejecutan en local con cargo test.
 3. Solo el verificador puede pagar y solo el donante puede reembolsar.
 4. Nadie puede cobrar más que el importe del hito.
 5. Un hito vencido nunca se paga.
+
+## Notas
+
+- Importes: el token usa 7 decimales. 1 USDCDEMO = 10000000 unidades en el contrato.
+- Los tests unitarios usan un token simulado creado en el propio test, no el token real de testnet.
