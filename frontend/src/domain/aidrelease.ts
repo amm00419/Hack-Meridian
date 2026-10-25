@@ -11,6 +11,15 @@ export const USDCDEMO_SYMBOL = 'USDCDEMO';
 export const USDCDEMO_CONTRACT =
   'CDFEDKZ6LWUS5JSHOFM5XVKCD6ALYGVDMREZYTYAZNOAFGQ6FJMLRA7Y';
 
+// Límites de los textos descriptivos de cada hito (viven fuera de la cadena).
+export const MILESTONE_LIMITS = {
+  title: 80,
+  description: 500,
+  criteria: 1000,
+  document: 120,
+  maxDocuments: 10,
+} as const;
+
 // Estados on-chain (nombres del contrato).
 export type ScholarshipStatus = 'Unfunded' | 'Active' | 'Completed' | 'Refunded';
 export type MilestoneStatus = 'Pending' | 'Paid' | 'Expired' | 'Cancelled';
@@ -45,19 +54,46 @@ export interface ScholarshipMeta {
   institution: string;
 }
 
-export type DonorScholarship = Scholarship & ScholarshipMeta;
+/**
+ * Qué debe cumplir el estudiante en un hito. Vive FUERA de la cadena: el
+ * contrato solo conoce importe y plazo. Se asocia al hito por su posición
+ * (milestoneDetails[i] describe al hito con id i).
+ * No incluir datos personales de estudiantes (RGPD).
+ */
+export interface MilestoneMeta {
+  title: string;
+  description: string; // contexto, opcional
+  criteria: string; // criterios que usa el verificador para aprobar
+  requiredDocuments: string[]; // documentación que debe aportar el estudiante
+}
 
-// Lo que el donante rellena para crear una beca (el donante lo pone la billetera).
+export type DonorScholarship = Scholarship &
+  ScholarshipMeta & {
+    milestoneDetails: MilestoneMeta[];
+  };
+
+// Lo que el contrato recibe por cada hito en el constructor.
 export interface MilestoneInput {
   amount: bigint;
   deadline: number;
 }
 
+// Lo que el donante rellena por cada hito: parte on-chain + parte descriptiva.
+export interface NewMilestone extends MilestoneInput {
+  details: MilestoneMeta;
+}
+
+// El donante lo pone la billetera.
 export interface NewScholarshipInput extends ScholarshipMeta {
   beneficiary: string;
   verifier: string;
   token: string;
-  milestones: MilestoneInput[];
+  milestones: NewMilestone[];
+}
+
+/** Solo importe y plazo: es lo único que se envía al contrato. */
+export function onChainMilestones(input: NewScholarshipInput): MilestoneInput[] {
+  return input.milestones.map(({ amount, deadline }) => ({ amount, deadline }));
 }
 
 // ---------------------------------------------------------------------------

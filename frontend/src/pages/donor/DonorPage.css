@@ -371,3 +371,118 @@
 p.ar-donor-issues {
   padding-left: 14px;
 }
+
+/* --- Conexión de billetera --- */
+.ar-donor-connect {
+  display: grid;
+  gap: 14px;
+  max-width: 560px;
+  margin: 48px auto;
+  padding: 24px;
+  background: var(--d-card);
+  border: 1px solid var(--d-border);
+  border-radius: 16px;
+}
+.ar-donor-connect a {
+  color: var(--d-accent);
+}
+.ar-donor-net {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.ar-donor-net-ok {
+  background: var(--d-ok-bg);
+  color: var(--d-ok);
+}
+.ar-donor-net-bad {
+  background: var(--d-late-bg);
+  color: var(--d-late);
+}
+
+/* --- Detalle de los hitos (texto fuera de la cadena) --- */
+.ar-donor-milestones li {
+  display: grid;
+  gap: 8px;
+}
+.ar-donor-ms-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+.ar-donor-ms-title {
+  font-weight: 600;
+}
+.ar-donor-ms-details {
+  border-top: 1px dashed var(--d-border);
+  padding-top: 8px;
+  font-size: 0.92rem;
+}
+.ar-donor-ms-details summary {
+  cursor: pointer;
+  color: var(--d-accent);
+  font-weight: 600;
+}
+.ar-donor-ms-details h4 {
+  margin: 10px 0 2px;
+  font-size: 0.85rem;
+  color: var(--d-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.ar-donor-ms-details p {
+  margin: 4px 0 0;
+  white-space: pre-line;
+}
+.ar-donor-ms-details ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+.ar-donor-ms-details li {
+  display: list-item;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* --- Formulario de hitos --- */
+.ar-donor-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--d-border);
+  background: var(--d-bg);
+  color: var(--d-text);
+  resize: vertical;
+}
+.ar-donor-ms-form {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--d-border);
+  border-radius: 12px;
+  background: var(--d-card);
+}
+.ar-donor-ms-form-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ar-donor-ms-form-head .ar-donor-btn {
+  margin-left: auto;
+}
+.ar-donor-ms-form-chain {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+.ar-donor-ms-form-chain > * {
+  min-width: 0;
+}

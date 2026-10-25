@@ -5,6 +5,7 @@ import {
   USDCDEMO_CONTRACT,
   type DonorScholarship,
   type Milestone,
+  type MilestoneMeta,
   type NewScholarshipInput,
 } from '../domain/aidrelease';
 
@@ -13,6 +14,13 @@ import {
 // Hoy lo implementa el mock de abajo. Cuando exista el contrato desplegado, se
 // escribe otra implementación con el SDK de Stellar y Freighter y las pantallas
 // no cambian.
+//
+// Reparto de datos al integrar el contrato real:
+//   - Contrato (Soroban): roles, token, importes y plazos de los hitos, pagos.
+//     Se le envía onChainMilestones(input).
+//   - Fuera de la cadena: título, entidad y los detalles de cada hito
+//     (descripción, criterios, documentación). Se guardan asociados al id del
+//     contrato desplegado.
 // ---------------------------------------------------------------------------
 export interface DonorService {
   listScholarships(donor: string): Promise<DonorScholarship[]>;
@@ -70,6 +78,15 @@ function milestone(id: number, amount: bigint, deadline: number, status: Milesto
   };
 }
 
+function details(
+  title: string,
+  description: string,
+  criteria: string,
+  requiredDocuments: string[],
+): MilestoneMeta {
+  return { title, description, criteria, requiredDocuments };
+}
+
 function seed(now: number): DonorScholarship[] {
   const base = {
     donor: MOCK_DONOR_ADDRESS,
@@ -95,6 +112,26 @@ function seed(now: number): DonorScholarship[] {
         milestone(1, tokens(300), now + 60 * DAY, 'Pending'),
         milestone(2, tokens(300), now + 90 * DAY, 'Pending'),
       ],
+      milestoneDetails: [
+        details(
+          'Matrícula universitaria',
+          'Acreditar la matrícula del curso.',
+          'El justificante debe estar emitido por la universidad e indicar el curso académico vigente.',
+          ['Justificante de matrícula (PDF)'],
+        ),
+        details(
+          'Primer trimestre',
+          'Acreditar el progreso académico.',
+          'Haber superado al menos el 50 % de los créditos matriculados en el trimestre.',
+          ['Certificado de calificaciones'],
+        ),
+        details(
+          'Segundo trimestre',
+          'Superar las asignaturas previstas.',
+          'Haber superado al menos el 50 % de los créditos del segundo trimestre.',
+          ['Certificado de calificaciones'],
+        ),
+      ],
     },
     {
       ...base,
@@ -113,6 +150,26 @@ function seed(now: number): DonorScholarship[] {
         milestone(1, tokens(300), now - 2 * DAY, 'Pending'),
         milestone(2, tokens(300), now + 30 * DAY, 'Pending'),
       ],
+      milestoneDetails: [
+        details(
+          'Propuesta de investigación',
+          'Presentar el plan inicial del trabajo.',
+          'La propuesta incluye objetivos, metodología y calendario, y está avalada por el tutor.',
+          ['Propuesta de investigación (PDF)', 'Aval del tutor'],
+        ),
+        details(
+          'Primer prototipo',
+          'Demostrar los primeros resultados.',
+          'El prototipo ejecuta el caso de uso descrito en la propuesta y se entrega con instrucciones.',
+          ['Enlace al repositorio', 'Informe breve de resultados'],
+        ),
+        details(
+          'Presentación final',
+          'Defender los resultados.',
+          'Presentación realizada ante el tutor con acta firmada.',
+          ['Acta de la presentación'],
+        ),
+      ],
     },
     {
       ...base,
@@ -129,6 +186,11 @@ function seed(now: number): DonorScholarship[] {
         milestone(0, tokens(400), now - 200 * DAY, 'Paid'),
         milestone(1, tokens(400), now - 120 * DAY, 'Paid'),
         milestone(2, tokens(400), now - 40 * DAY, 'Paid'),
+      ],
+      milestoneDetails: [
+        details('Incorporación', 'Acreditar la llegada al destino.', 'Certificado de incorporación firmado por la universidad de destino.', ['Certificado de incorporación']),
+        details('Seguimiento', 'Informe intermedio.', 'Informe de seguimiento aprobado por el coordinador.', ['Informe intermedio']),
+        details('Finalización', 'Certificado de estancia.', 'Certificado de estancia con las fechas completas.', ['Certificado de estancia']),
       ],
     },
   ];
@@ -176,6 +238,7 @@ export function createMockDonorService(
         refundedAmount: 0n,
         nextMilestoneId: 0,
         milestones: input.milestones.map((m, i) => milestone(i, m.amount, m.deadline, 'Pending')),
+        milestoneDetails: input.milestones.map((m) => ({ ...m.details })),
       };
       db = [created, ...db];
       return clone(created);

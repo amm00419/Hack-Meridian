@@ -12,6 +12,9 @@ import {
   MOCK_DONOR_ADDRESS,
   type DonorService,
 } from '../../services/donorService';
+import { useWallet } from '../../wallet/useWallet';
+import WalletProvider from '../../wallet/WalletProvider';
+import ConnectCard from './ConnectCard';
 import CreateScholarshipForm from './CreateScholarshipForm';
 import ScholarshipCard from './ScholarshipCard';
 import './DonorPage.css';
@@ -19,13 +22,48 @@ import './DonorPage.css';
 // Hoy se usa el servicio simulado. Al integrar el contrato real solo hay que
 // cambiar esta línea por la implementación con Freighter y el SDK de Stellar.
 const service: DonorService = createMockDonorService();
-const DONOR = MOCK_DONOR_ADDRESS;
 
 type Notice = { kind: 'ok' | 'error'; text: string };
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
+// El proveedor de billetera se monta aquí para no tocar App.tsx. Cuando las
+// otras pantallas también lo necesiten, se sube a App.tsx sin más cambios.
 export default function DonorPage() {
+  return (
+    <WalletProvider>
+      <DonorGate />
+    </WalletProvider>
+  );
+}
+
+function DonorGate() {
+  const wallet = useWallet();
+  const [demo, setDemo] = useState(false);
+
+  const donor = wallet.address ?? (demo ? MOCK_DONOR_ADDRESS : null);
+
+  if (donor === null) {
+    return (
+      <main className="ar-donor">
+        <ConnectCard wallet={wallet} onDemo={() => setDemo(true)} />
+      </main>
+    );
+  }
+
+  // key={donor}: al cambiar de cuenta el panel empieza de cero.
+  return <DonorPanel key={donor} donor={donor} onExitDemo={() => setDemo(false)} />;
+}
+
+interface PanelProps {
+  donor: string;
+  onExitDemo: () => void;
+}
+
+function DonorPanel({ donor, onExitDemo }: PanelProps) {
+  const wallet = useWallet();
+  const usingWallet = wallet.address !== null;
+
   const [scholarships, setScholarships] = useState<DonorScholarship[]>([]);
   const [now, setNow] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -37,7 +75,7 @@ export default function DonorPage() {
   useEffect(() => {
     let cancelled = false;
     service
-      .listScholarships(DONOR)
+      .listScholarships(donor)
       .then((data) => {
         if (cancelled) return;
         setScholarships(data);
@@ -52,7 +90,7 @@ export default function DonorPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [donor]);
 
   // Refresca la hora para que un hito pase a "Vencido" sin recargar la página.
   useEffect(() => {
@@ -102,7 +140,7 @@ export default function DonorPage() {
 
   async function handleCreate(input: NewScholarshipInput) {
     // Si falla, la excepción llega al formulario, que la muestra junto a los campos.
-    const created = await service.createScholarship(DONOR, input);
+    const created = await service.createScholarship(donor, input);
     setScholarships((prev) => [created, ...prev]);
     setShowForm(false);
     setNow(nowSeconds());
@@ -122,19 +160,62 @@ export default function DonorPage() {
         <div>
           <h1>Panel del donante</h1>
           <p className="ar-donor-muted">
-            Cuenta de demostración: <code title={DONOR}>{shortAddress(DONOR)}</code>
+            {usingWallet ? 'Billetera Freighter' : 'Cuenta de demostración'}:{' '}
+            <code title={donor}>{shortAddress(donor)}</code>
+            {usingWallet && (
+              <span
+                className={`ar-donor-net ${wallet.onTestnet ? 'ar-donor-net-ok' : 'ar-donor-net-bad'}`}
+              >
+                {wallet.network ?? 'red desconocida'}
+              </span>
+            )}
           </p>
         </div>
-        {!showForm && (
-          <button type="button" className="ar-donor-btn" onClick={() => setShowForm(true)}>
-            Crear beca
-          </button>
-        )}
+        <div className="ar-donor-actions">
+          {!usingWallet && (
+            <button
+              type="button"
+              className="ar-donor-btn ar-donor-btn-ghost"
+              disabled={wallet.status === 'connecting'}
+              onClick={wallet.connect}
+            >
+              Conectar Freighter
+            </button>
+          )}
+          {usingWallet ? (
+            <button type="button" className="ar-donor-btn ar-donor-btn-ghost" onClick={wallet.disconnect}>
+              Desconectar
+            </button>
+          ) : (
+            <button type="button" className="ar-donor-btn ar-donor-btn-ghost" onClick={onExitDemo}>
+              Salir de la demo
+            </button>
+          )}
+          {!showForm && (
+            <button type="button" className="ar-donor-btn" onClick={() => setShowForm(true)}>
+              Crear beca
+            </button>
+          )}
+        </div>
       </header>
 
+      {!usingWallet && wallet.error && (
+        <p className="ar-donor-notice ar-donor-notice-error" role="alert">
+          {wallet.error}
+        </p>
+      )}
+
+      {usingWallet && !wallet.onTestnet && (
+        <p className="ar-donor-notice ar-donor-notice-error" role="alert">
+          Freighter está en la red «{wallet.network ?? 'desconocida'}». Cámbiala a <strong>Testnet</strong> en
+          los ajustes de la extensión antes de usar la aplicación.
+        </p>
+      )}
+
       <p className="ar-donor-demo" role="note">
-        Modo demostración: los datos son simulados y no se mueve dinero. La conexión con Freighter y con el
-        contrato real se activará cuando esté desplegado en la red de pruebas.
+        Modo demostración: los datos de becas son simulados y no se mueve dinero. La conexión de la
+        billetera es real, pero las operaciones con el contrato se activarán cuando esté desplegado en la
+        red de pruebas.
       </p>
 
       {notice && (
@@ -144,7 +225,7 @@ export default function DonorPage() {
       )}
 
       {showForm && (
-        <CreateScholarshipForm donor={DONOR} onCreate={handleCreate} onCancel={() => setShowForm(false)} />
+        <CreateScholarshipForm donor={donor} onCreate={handleCreate} onCancel={() => setShowForm(false)} />
       )}
 
       {!loading && !loadError && (

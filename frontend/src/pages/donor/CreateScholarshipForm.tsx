@@ -1,12 +1,19 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import {
   MAX_MILESTONES,
+  MILESTONE_LIMITS,
   USDCDEMO_CONTRACT,
   USDCDEMO_SYMBOL,
   type NewScholarshipInput,
 } from '../../domain/aidrelease';
 import { shortAddress } from '../../domain/format';
-import { parseForm, type ScholarshipForm, type ValidationIssue } from '../../domain/validation';
+import {
+  EMPTY_MILESTONE_ROW,
+  parseForm,
+  type MilestoneFormRow,
+  type ScholarshipForm,
+  type ValidationIssue,
+} from '../../domain/validation';
 import { describeError } from '../../services/donorService';
 
 interface Props {
@@ -15,18 +22,17 @@ interface Props {
   onCancel: () => void;
 }
 
-const EMPTY_ROW = { amount: '', date: '' };
-
 const INITIAL: ScholarshipForm = {
   title: '',
   institution: '',
   beneficiary: '',
   verifier: '',
   token: USDCDEMO_CONTRACT,
-  milestones: [{ ...EMPTY_ROW }],
+  milestones: [{ ...EMPTY_MILESTONE_ROW }],
 };
 
 type TextField = 'title' | 'institution' | 'beneficiary' | 'verifier' | 'token';
+type TextRef = ChangeEvent<HTMLInputElement | HTMLTextAreaElement>;
 
 export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Props) {
   const [form, setForm] = useState<ScholarshipForm>(INITIAL);
@@ -38,7 +44,7 @@ export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Pro
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function setRow(index: number, key: 'amount' | 'date', value: string) {
+  function setRow(index: number, key: keyof MilestoneFormRow, value: string) {
     setForm((prev) => ({
       ...prev,
       milestones: prev.milestones.map((row, i) => (i === index ? { ...row, [key]: value } : row)),
@@ -49,7 +55,7 @@ export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Pro
     setForm((prev) =>
       prev.milestones.length >= MAX_MILESTONES
         ? prev
-        : { ...prev, milestones: [...prev.milestones, { ...EMPTY_ROW }] },
+        : { ...prev, milestones: [...prev.milestones, { ...EMPTY_MILESTONE_ROW }] },
     );
   }
 
@@ -86,7 +92,7 @@ export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Pro
     <form className="ar-donor-form" onSubmit={handleSubmit} noValidate>
       <h2>Crear beca</h2>
       <p className="ar-donor-muted">
-        Se desplegará un contrato propio para esta beca. Tu billetera ({shortAddress(donor)}) será el donante.
+        Se creará un contrato para esta beca. Tu billetera ({shortAddress(donor)}) será el donante.
       </p>
 
       <div className="ar-donor-grid">
@@ -95,7 +101,7 @@ export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Pro
           <input
             id="beca-titulo"
             value={form.title}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setField('title', e.target.value)}
+            onChange={(e: TextRef) => setField('title', e.target.value)}
             placeholder="Beca de Apoyo Universitario"
           />
         </label>
@@ -104,7 +110,7 @@ export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Pro
           <input
             id="beca-entidad"
             value={form.institution}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setField('institution', e.target.value)}
+            onChange={(e: TextRef) => setField('institution', e.target.value)}
             placeholder="Fundación AidRelease"
           />
         </label>
@@ -115,7 +121,7 @@ export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Pro
         <input
           id="beca-estudiante"
           value={form.beneficiary}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setField('beneficiary', e.target.value)}
+          onChange={(e: TextRef) => setField('beneficiary', e.target.value)}
           spellCheck={false}
           autoComplete="off"
         />
@@ -126,7 +132,7 @@ export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Pro
         <input
           id="beca-verificador"
           value={form.verifier}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setField('verifier', e.target.value)}
+          onChange={(e: TextRef) => setField('verifier', e.target.value)}
           spellCheck={false}
           autoComplete="off"
         />
@@ -137,7 +143,7 @@ export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Pro
         <input
           id="beca-token"
           value={form.token}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setField('token', e.target.value)}
+          onChange={(e: TextRef) => setField('token', e.target.value)}
           spellCheck={false}
           autoComplete="off"
         />
@@ -150,39 +156,98 @@ export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Pro
 
       <fieldset className="ar-donor-fieldset">
         <legend>Hitos (entre 1 y {MAX_MILESTONES}, en orden)</legend>
+        <p className="ar-donor-hint">
+          El importe y la fecha límite se guardan en el contrato y no se pueden cambiar después. El título,
+          la descripción, los criterios y los documentos se guardan fuera de la cadena. No incluyas datos
+          personales de estudiantes.
+        </p>
+
         {form.milestones.map((row, index) => (
-          <div className="ar-donor-row" key={index}>
-            <span className="ar-donor-ms-num">{index + 1}</span>
-            <label htmlFor={`hito-importe-${index}`}>
-              Importe ({USDCDEMO_SYMBOL})
+          <div className="ar-donor-ms-form" key={index}>
+            <div className="ar-donor-ms-form-head">
+              <span className="ar-donor-ms-num">{index + 1}</span>
+              <strong>Hito {index + 1}</strong>
+              <button
+                type="button"
+                className="ar-donor-btn ar-donor-btn-ghost"
+                onClick={() => removeRow(index)}
+                disabled={form.milestones.length <= 1}
+                aria-label={`Quitar hito ${index + 1}`}
+              >
+                Quitar
+              </button>
+            </div>
+
+            <label htmlFor={`hito-titulo-${index}`}>
+              Título del hito
               <input
-                id={`hito-importe-${index}`}
-                inputMode="decimal"
-                value={row.amount}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setRow(index, 'amount', e.target.value)}
-                placeholder="300"
+                id={`hito-titulo-${index}`}
+                value={row.title}
+                maxLength={MILESTONE_LIMITS.title}
+                onChange={(e: TextRef) => setRow(index, 'title', e.target.value)}
+                placeholder="Matrícula universitaria"
               />
             </label>
-            <label htmlFor={`hito-fecha-${index}`}>
-              Fecha límite
-              <input
-                id={`hito-fecha-${index}`}
-                type="date"
-                value={row.date}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setRow(index, 'date', e.target.value)}
+
+            <label htmlFor={`hito-descripcion-${index}`}>
+              Descripción (opcional)
+              <textarea
+                id={`hito-descripcion-${index}`}
+                rows={2}
+                value={row.description}
+                maxLength={MILESTONE_LIMITS.description}
+                onChange={(e: TextRef) => setRow(index, 'description', e.target.value)}
+                placeholder="Qué representa este hito"
               />
             </label>
-            <button
-              type="button"
-              className="ar-donor-btn ar-donor-btn-ghost"
-              onClick={() => removeRow(index)}
-              disabled={form.milestones.length <= 1}
-              aria-label={`Quitar hito ${index + 1}`}
-            >
-              Quitar
-            </button>
+
+            <label htmlFor={`hito-criterios-${index}`}>
+              Criterios de aprobación (los usa el verificador)
+              <textarea
+                id={`hito-criterios-${index}`}
+                rows={3}
+                value={row.criteria}
+                maxLength={MILESTONE_LIMITS.criteria}
+                onChange={(e: TextRef) => setRow(index, 'criteria', e.target.value)}
+                placeholder="El justificante debe estar emitido por la universidad e indicar el curso vigente."
+              />
+            </label>
+
+            <label htmlFor={`hito-documentos-${index}`}>
+              Documentación requerida (un documento por línea)
+              <textarea
+                id={`hito-documentos-${index}`}
+                rows={3}
+                value={row.documents}
+                onChange={(e: TextRef) => setRow(index, 'documents', e.target.value)}
+                placeholder={'Justificante de matrícula (PDF)\nCertificado de calificaciones'}
+              />
+            </label>
+
+            <div className="ar-donor-ms-form-chain">
+              <label htmlFor={`hito-importe-${index}`}>
+                Importe ({USDCDEMO_SYMBOL})
+                <input
+                  id={`hito-importe-${index}`}
+                  inputMode="decimal"
+                  value={row.amount}
+                  onChange={(e: TextRef) => setRow(index, 'amount', e.target.value)}
+                  placeholder="300"
+                />
+              </label>
+              <label htmlFor={`hito-fecha-${index}`}>
+                Fecha límite
+                <input
+                  id={`hito-fecha-${index}`}
+                  type="date"
+                  value={row.date}
+                  onChange={(e: TextRef) => setRow(index, 'date', e.target.value)}
+                />
+              </label>
+            </div>
           </div>
         ))}
+
         <button
           type="button"
           className="ar-donor-btn ar-donor-btn-ghost"

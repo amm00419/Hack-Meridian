@@ -1,12 +1,17 @@
 import {
   MAX_I128,
   MAX_MILESTONES,
-  type MilestoneInput,
+  MILESTONE_LIMITS,
+  type NewMilestone,
   type NewScholarshipInput,
 } from './aidrelease';
 import { dateInputToDeadline, isAccountAddress, isContractAddress, parseUnits } from './format';
 
 export interface MilestoneFormRow {
+  title: string;
+  description: string;
+  criteria: string;
+  documents: string; // un documento por línea
   amount: string; // texto del input, p. ej. "300,5"
   date: string; // texto de input type=date, "YYYY-MM-DD"
 }
@@ -20,9 +25,19 @@ export interface ScholarshipForm {
   milestones: MilestoneFormRow[];
 }
 
+export const EMPTY_MILESTONE_ROW: MilestoneFormRow = {
+  title: '',
+  description: '',
+  criteria: '',
+  documents: '',
+  amount: '',
+  date: '',
+};
+
 // Los códigos coinciden con ContractError cuando existe equivalente.
 export type IssueCode =
   | 'MissingField'
+  | 'FieldTooLong'
   | 'InvalidAddress'
   | 'InvalidRoles'
   | 'InvalidMilestones'
@@ -41,9 +56,19 @@ export interface ParseResult {
   issues: ValidationIssue[];
 }
 
+/** "a\n\n b \n" -> ["a", "b"] */
+export function splitLines(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
 /**
  * Valida el formulario con las mismas reglas que el constructor del contrato,
  * para avisar antes de pedir la firma. El contrato sigue siendo la autoridad.
+ * Los textos descriptivos de los hitos no los conoce el contrato: se validan
+ * solo aquí.
  */
 export function parseForm(donor: string, form: ScholarshipForm, nowSec: number): ParseResult {
   const issues: ValidationIssue[] = [];
@@ -82,7 +107,7 @@ export function parseForm(donor: string, form: ScholarshipForm, nowSec: number):
     add('InvalidMilestones', `La beca necesita entre 1 y ${MAX_MILESTONES} hitos.`);
   }
 
-  const milestones: MilestoneInput[] = [];
+  const milestones: NewMilestone[] = [];
   let rowsOk = true;
   let previousDeadline = nowSec;
 
@@ -91,6 +116,7 @@ export function parseForm(donor: string, form: ScholarshipForm, nowSec: number):
     const amount = parseUnits(row.amount);
     const deadline = dateInputToDeadline(row.date);
 
+    // --- Parte on-chain
     if (amount === null || amount <= 0n) {
       add('InvalidAmount', `Hito ${n}: el importe debe ser un número mayor que 0 (máximo 7 decimales).`);
       rowsOk = false;
@@ -109,7 +135,39 @@ export function parseForm(donor: string, form: ScholarshipForm, nowSec: number):
     }
     if (deadline !== null) previousDeadline = Math.max(previousDeadline, deadline);
 
-    if (amount !== null && deadline !== null) milestones.push({ amount, deadline });
+    // --- Parte descriptiva (fuera de la cadena)
+    const rowTitle = row.title.trim();
+    const description = row.description.trim();
+    const criteria = row.criteria.trim();
+    const requiredDocuments = splitLines(row.documents);
+
+    if (rowTitle.length === 0) add('MissingField', `Hito ${n}: indica un título.`);
+    else if (rowTitle.length > MILESTONE_LIMITS.title) {
+      add('FieldTooLong', `Hito ${n}: el título no puede superar ${MILESTONE_LIMITS.title} caracteres.`);
+    }
+    if (description.length > MILESTONE_LIMITS.description) {
+      add('FieldTooLong', `Hito ${n}: la descripción no puede superar ${MILESTONE_LIMITS.description} caracteres.`);
+    }
+    if (criteria.length === 0) {
+      add('MissingField', `Hito ${n}: indica los criterios de aprobación para el verificador.`);
+    } else if (criteria.length > MILESTONE_LIMITS.criteria) {
+      add('FieldTooLong', `Hito ${n}: los criterios no pueden superar ${MILESTONE_LIMITS.criteria} caracteres.`);
+    }
+    if (requiredDocuments.length === 0) {
+      add('MissingField', `Hito ${n}: indica al menos un documento que debe aportar el estudiante.`);
+    } else if (requiredDocuments.length > MILESTONE_LIMITS.maxDocuments) {
+      add('FieldTooLong', `Hito ${n}: máximo ${MILESTONE_LIMITS.maxDocuments} documentos.`);
+    } else if (requiredDocuments.some((d) => d.length > MILESTONE_LIMITS.document)) {
+      add('FieldTooLong', `Hito ${n}: cada documento puede tener como máximo ${MILESTONE_LIMITS.document} caracteres.`);
+    }
+
+    if (amount !== null && deadline !== null) {
+      milestones.push({
+        amount,
+        deadline,
+        details: { title: rowTitle, description, criteria, requiredDocuments },
+      });
+    }
   });
 
   if (rowsOk) {

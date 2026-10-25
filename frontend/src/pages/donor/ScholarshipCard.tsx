@@ -118,12 +118,30 @@ export default function ScholarshipCard({ scholarship: s, now, busy, onFund, onR
       <ol className="ar-donor-milestones">
         {s.milestones.map((m) => {
           const badge = milestoneBadge(m, now);
+          const info = s.milestoneDetails[m.id];
           return (
             <li key={m.id}>
-              <span className="ar-donor-ms-num">{m.id + 1}</span>
-              <span className="ar-donor-ms-amount">{formatUnits(m.amount)} {symbol}</span>
-              <span className="ar-donor-muted">hasta {formatDate(m.deadline)}</span>
-              <span className={`ar-donor-badge ar-donor-badge-${badge.tone}`}>{badge.label}</span>
+              <div className="ar-donor-ms-top">
+                <span className="ar-donor-ms-num">{m.id + 1}</span>
+                <span className="ar-donor-ms-title">{info ? info.title : `Hito ${m.id + 1}`}</span>
+                <span className="ar-donor-ms-amount">{formatUnits(m.amount)} {symbol}</span>
+                <span className="ar-donor-muted">hasta {formatDate(m.deadline)}</span>
+                <span className={`ar-donor-badge ar-donor-badge-${badge.tone}`}>{badge.label}</span>
+              </div>
+              {info && (
+                <details className="ar-donor-ms-details">
+                  <summary>Ver requisitos del hito</summary>
+                  {info.description && <p>{info.description}</p>}
+                  <h4>Criterios de aprobación</h4>
+                  <p>{info.criteria}</p>
+                  <h4>Documentación requerida</h4>
+                  <ul>
+                    {info.requiredDocuments.map((doc, i) => (
+                      <li key={i}>{doc}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
             </li>
           );
         })}
