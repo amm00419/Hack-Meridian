@@ -214,6 +214,161 @@ impl AidRelease {
         Ok(())
     }
 
+    /// El verificador aprueba exclusivamente el siguiente hito vigente.
+    /// La transferencia se realiza en la misma transaccion.
+    pub fn approve_milestone(
+        env: Env,
+        milestone_id: u32,
+        evidence_hash: BytesN<32>,
+    ) -> Result<(), ContractError> {
+        let mut scholarship: Scholarship = env
+            .storage()
+            .instance()
+            .get(&DataKey::Scholarship)
+            .unwrap();
+
+        scholarship.verifier.require_auth();
+
+        if scholarship.status == ScholarshipStatus::Unfunded {
+            return Err(ContractError::NotFunded);
+        }
+        if scholarship.status != ScholarshipStatus::Active {
+            return Err(ContractError::ScholarshipClosed);
+        }
+
+        let mut milestones: Vec<Milestone> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Milestones)
+            .unwrap();
+
+        // La existencia y el estado tienen prioridad sobre el orden.
+        let mut milestone = milestones
+            .get(milestone_id)
+            .ok_or(ContractError::InvalidMilestoneId)?;
+
+        if milestone.status != MilestoneStatus::Pending {
+            return Err(ContractError::MilestoneNotPending);
+        }
+        if milestone_id != scholarship.next_milestone_id {
+            return Err(ContractError::WrongMilestoneOrder);
+        }
+        // Se permite aprobar durante el segundo exacto del vencimiento.
+        if env.ledger().timestamp() > milestone.deadline_timestamp {
+            return Err(ContractError::MilestoneExpired);
+        }
+
+        let new_paid_amount = scholarship
+            .paid_amount
+            .checked_add(milestone.amount)
+            .ok_or(ContractError::ArithmeticOverflow)?;
+        if new_paid_amount > scholarship.total_amount {
+            return Err(ContractError::ArithmeticOverflow);
+        }
+        let next_id = scholarship
+            .next_milestone_id
+            .checked_add(1)
+            .ok_or(ContractError::ArithmeticOverflow)?;
+
+        milestone.status = MilestoneStatus::Paid;
+        milestone.evidence_hash = Some(evidence_hash);
+        milestones.set(milestone_id, milestone.clone());
+
+        scholarship.paid_amount = new_paid_amount;
+        scholarship.next_milestone_id = next_id;
+        if next_id == milestones.len() {
+            scholarship.status = ScholarshipStatus::Completed;
+        }
+
+        // Actualizar antes de llamar al contrato externo del token.
+        env.storage().instance().set(&DataKey::Milestones, &milestones);
+        env.storage().instance().set(&DataKey::Scholarship, &scholarship);
+
+        // Si falla el pago, se revierte toda la transaccion, incluidos los estados.
+        let token_client = token::TokenClient::new(&env, &scholarship.token);
+        token_client.transfer(
+            &env.current_contract_address(),
+            &scholarship.beneficiary,
+            &milestone.amount,
+        );
+
+        Ok(())
+    }
+
+    /// Cuando vence el siguiente hito, el donante recupera todo lo pendiente.
+    pub fn claim_refund(env: Env) -> Result<i128, ContractError> {
+        let mut scholarship: Scholarship = env
+            .storage()
+            .instance()
+            .get(&DataKey::Scholarship)
+            .unwrap();
+
+        scholarship.donor.require_auth();
+
+        if scholarship.status == ScholarshipStatus::Unfunded {
+            return Err(ContractError::NotFunded);
+        }
+        if scholarship.status != ScholarshipStatus::Active {
+            return Err(ContractError::ScholarshipClosed);
+        }
+
+        let mut milestones: Vec<Milestone> = env
+            .storage()
+            .instance()
+            .get(&DataKey::Milestones)
+            .unwrap();
+        let next_id = scholarship.next_milestone_id;
+        let mut expired = milestones
+            .get(next_id)
+            .ok_or(ContractError::InvalidMilestoneId)?;
+
+        // Solo se puede reembolsar DESPUES del segundo de vencimiento.
+        if env.ledger().timestamp() <= expired.deadline_timestamp {
+            return Err(ContractError::RefundNotAvailable);
+        }
+        if expired.status != MilestoneStatus::Pending {
+            return Err(ContractError::MilestoneNotPending);
+        }
+
+        // Contabilidad interna: nunca utilizar el saldo total del token.
+        let refund = scholarship
+            .total_amount
+            .checked_sub(scholarship.paid_amount)
+            .and_then(|v| v.checked_sub(scholarship.refunded_amount))
+            .ok_or(ContractError::ArithmeticOverflow)?;
+        if refund <= 0 {
+            return Err(ContractError::RefundNotAvailable);
+        }
+
+        expired.status = MilestoneStatus::Expired;
+        milestones.set(next_id, expired);
+
+        for i in (next_id + 1)..milestones.len() {
+            let mut following = milestones.get(i).unwrap();
+            following.status = MilestoneStatus::Cancelled;
+            milestones.set(i, following);
+        }
+
+        scholarship.refunded_amount = scholarship
+            .refunded_amount
+            .checked_add(refund)
+            .ok_or(ContractError::ArithmeticOverflow)?;
+        scholarship.status = ScholarshipStatus::Refunded;
+
+        env.storage().instance().set(&DataKey::Milestones, &milestones);
+        env.storage().instance().set(&DataKey::Scholarship, &scholarship);
+
+        // Si la transferencia revierte, la escritura de estados tambien revierte.
+        let token_client = token::TokenClient::new(&env, &scholarship.token);
+        token_client.transfer(
+            &env.current_contract_address(),
+            &scholarship.donor,
+            &refund,
+        );
+
+        Ok(refund)
+    }
+
     /// Devuelve los datos generales de la beca.
     pub fn get_scholarship(env: Env) -> Scholarship {
         env.storage()
