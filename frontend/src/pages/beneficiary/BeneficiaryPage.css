@@ -1,0 +1,377 @@
+.ar-beneficiary-home {
+  max-width: 1450px;
+  margin: 0 auto;
+  padding: 30px 24px 70px;
+  color: #10243a;
+  text-align: left;
+}
+
+.ar-beneficiary-home * {
+  box-sizing: border-box;
+}
+
+.ar-welcome {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+  padding: 30px;
+  margin-bottom: 24px;
+  border-radius: 20px;
+  color: white;
+  background: linear-gradient(110deg, #12304f, #10465d 65%, #087b78);
+}
+
+.ar-welcome h1 {
+  font-size: clamp(28px, 3vw, 40px);
+  margin: 0 0 10px;
+}
+
+.ar-welcome p {
+  color: #c8dce8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ar-welcome-stats {
+  display: flex;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.ar-welcome-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 18px;
+  background: #ffffff12;
+  border: 1px solid #ffffff18;
+  border-radius: 12px;
+}
+
+.ar-welcome-stats strong {
+  font-size: 24px;
+}
+
+.ar-welcome-stats span {
+  color: #d1e4ed;
+  font-size: 11px;
+}
+
+.ar-aid-section {
+  padding: 25px;
+  margin-bottom: 20px;
+  background: #f7fafc;
+  border: 1px solid #e2ebf1;
+  border-radius: 20px;
+}
+
+.ar-aid-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 22px;
+}
+
+.ar-aid-section-heading h2 {
+  font-size: 23px;
+  margin: 0 0 5px;
+}
+
+.ar-aid-section-heading p {
+  color: #7c8da1;
+  margin: 0;
+  font-size: 13px;
+}
+
+.ar-section-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  background: #fff1d8;
+  color: #dd940e;
+  font-size: 23px;
+  flex-shrink: 0;
+}
+
+.ar-section-icon-success {
+  background: #d9f8ec;
+  color: #009b79;
+}
+
+.ar-scholarship-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.ar-scholarship-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid #e0eaf0;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 5px 18px #1234560a;
+  min-width: 0;
+}
+
+.ar-scholarship-card:hover {
+  border-color: #61b9bd;
+  box-shadow: 0 10px 25px #12345612;
+}
+
+.ar-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ar-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.ar-scholarship-icon {
+  display: grid;
+  place-items: center;
+  width: 47px;
+  height: 47px;
+  border-radius: 12px;
+  background: #e1f2ff;
+  color: #087ac0;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.ar-card-failed .ar-scholarship-icon {
+  background: #ffe7e7;
+  color: #e34242;
+}
+
+.ar-card-completed .ar-scholarship-icon {
+  background: #dff8ef;
+  color: #00a77d;
+}
+
+.ar-card-title-group h3 {
+  font-size: 17px;
+  margin: 0 0 6px;
+}
+
+.ar-card-title-group p {
+  font-size: 12px;
+  color: #7890a4;
+  margin: 0;
+}
+
+.ar-scholarship-badge {
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ar-badge-active,
+.ar-badge-completed {
+  color: #008a70;
+  background: #dff8ef;
+}
+
+.ar-badge-failed {
+  color: #d63030;
+  background: #ffe5e5;
+}
+
+.ar-card-finances {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.ar-progress-ring {
+  display: grid;
+  place-items: center;
+  width: 95px;
+  height: 95px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ar-progress-ring > div {
+  width: 75px;
+  height: 75px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: white;
+  border-radius: 50%;
+}
+
+.ar-progress-ring strong {
+  font-size: 20px;
+}
+
+.ar-progress-ring small {
+  font-size: 10px;
+  color: #8193a5;
+}
+
+.ar-finance-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ar-finance-stat span,
+.ar-finance-stat small {
+  color: #8193a5;
+  font-size: 11px;
+}
+
+.ar-finance-stat strong {
+  font-size: clamp(18px, 2vw, 24px);
+}
+
+.ar-next-milestone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 15px;
+  border-radius: 12px;
+  background: #fff9e9;
+}
+
+.ar-next-milestone-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ar-next-milestone-info > span {
+  font-size: 23px;
+}
+
+.ar-next-milestone-info strong,
+.ar-next-milestone-info small,
+.ar-deadline strong,
+.ar-deadline small {
+  display: block;
+}
+
+.ar-next-milestone-info strong {
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.ar-next-milestone-info small {
+  font-size: 11px;
+  color: #7b8da0;
+}
+
+.ar-deadline {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.ar-deadline strong {
+  font-size: 13px;
+}
+
+.ar-deadline small {
+  font-size: 11px;
+  color: #7b8da0;
+  margin-top: 5px;
+}
+
+.ar-finished-message {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 13px;
+  border-radius: 10px;
+}
+
+.ar-finished-completed {
+  color: #008b70;
+  background: #e2f9ef;
+}
+
+.ar-finished-failed {
+  color: #d93636;
+  background: #ffeded;
+}
+
+.ar-details-button {
+  align-self: flex-start;
+  padding: 11px 17px;
+  border-radius: 9px;
+  background: #075e6b;
+  color: white;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  transition: background 0.2s;
+}
+
+.ar-details-button:hover {
+  background: #087f8d;
+}
+
+.ar-home-footer {
+  text-align: center;
+  margin-top: 28px;
+  color: #92a4b8;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .ar-welcome {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ar-welcome-stats {
+    flex-wrap: wrap;
+  }
+
+  .ar-card-finances {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 760px) {
+  .ar-beneficiary-home {
+    padding: 18px 12px 45px;
+  }
+
+  .ar-scholarship-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ar-aid-section {
+    padding: 18px;
+  }
+
+  .ar-scholarship-card {
+    padding: 18px;
+  }
+
+  .ar-card-heading {
+    flex-wrap: wrap;
+  }
+
+  .ar-welcome {
+    padding: 22px;
+  }
+}
