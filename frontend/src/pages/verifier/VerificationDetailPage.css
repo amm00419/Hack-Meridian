@@ -1,0 +1,303 @@
+
+.vr-dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 42px 24px 70px;
+  color: #08223e;
+}
+
+.vr-back-link {
+  display: inline-block;
+  margin-bottom: 30px;
+  color: #55d9c3;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.vr-back-link:hover {
+  text-decoration: underline;
+}
+
+.vr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 36px;
+}
+
+.vr-eyebrow {
+  color: #13c6ae;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.vr-header h1 {
+  color: white;
+  font-size: clamp(30px, 4vw, 48px);
+  margin: 15px 0;
+}
+
+.vr-header p {
+  color: #a8bfd6;
+  font-size: 17px;
+  max-width: 700px;
+}
+
+.vr-network {
+  background: #123e3a;
+  color: #5bf1d4;
+  padding: 12px 18px;
+  border-radius: 30px;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.vr-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 42px;
+  border-radius: 25px;
+  margin-bottom: 24px;
+  color: white;
+  background: linear-gradient(110deg, #123451, #087f79);
+}
+
+.vr-hero-label {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  background: #ffffff20;
+  padding: 9px 14px;
+  border-radius: 30px;
+}
+
+.vr-hero h2 {
+  font-size: 32px;
+  margin: 10px 0;
+}
+
+.vr-hero p {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.vr-hero small {
+  color: #c7e2ec;
+}
+
+.vr-hero-amount {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+
+.vr-hero-amount strong {
+  font-size: 50px;
+  line-height: 1.3;
+}
+
+.vr-content-card {
+  background: white;
+  padding: 36px;
+  border-radius: 23px;
+  margin-bottom: 24px;
+}
+
+.vr-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.vr-section-heading h2 {
+  margin: 0 0 8px;
+  font-size: 25px;
+}
+
+.vr-section-heading p {
+  margin: 0;
+  color: #8195ad;
+}
+
+.vr-badge {
+  border-radius: 30px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.vr-badge-pending {
+  color: #986000;
+  background: #fff0cf;
+}
+
+.vr-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 25px;
+}
+
+.vr-info-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vr-info-grid span {
+  color: #8398ad;
+  font-size: 14px;
+}
+
+.vr-info-grid strong {
+  font-size: 17px;
+}
+
+.vr-guide-section {
+  border-top: 1px solid #e8eef3;
+  padding: 24px 0;
+}
+
+.vr-guide-section h3 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+
+.vr-guide-section p {
+  color: #526b85;
+  line-height: 1.7;
+}
+
+.vr-criteria-list,
+.vr-documents-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.vr-criteria-list li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.vr-criteria-list li span {
+  color: #00a88f;
+  font-weight: 800;
+}
+
+.vr-documents-list li {
+  padding: 12px 16px;
+  border: 1px solid #e2ebf2;
+  border-radius: 10px;
+}
+
+.vr-instructions {
+  background: #f0f7fa;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.vr-instructions p {
+  color: #58728c;
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+
+.vr-empty-evidence {
+  text-align: center;
+  padding: 45px 20px;
+  background: #f4f8fb;
+  border: 1px dashed #cbdce8;
+  border-radius: 16px;
+}
+
+.vr-empty-evidence > span {
+  font-size: 38px;
+}
+
+.vr-empty-evidence h3 {
+  margin: 15px 0 8px;
+}
+
+.vr-empty-evidence p {
+  color: #7c90a6;
+  max-width: 480px;
+  margin: auto;
+}
+
+.vr-review-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.vr-review-actions button {
+  padding: 17px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.vr-approve-button {
+  background: #008e7e;
+  color: white;
+}
+
+.vr-correction-button {
+  background: #fff0d8;
+  color: #9a6500;
+}
+
+.vr-review-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.vr-action-note {
+  margin-top: 16px;
+  color: #8296ab;
+  font-size: 13px;
+}
+
+.vr-footer {
+  text-align: center;
+  color: #8ba2b9;
+  margin-top: 40px;
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .vr-header,
+  .vr-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .vr-hero {
+    padding: 28px;
+  }
+
+  .vr-hero-amount {
+    text-align: left;
+  }
+
+  .vr-content-card {
+    padding: 24px;
+  }
+
+  .vr-info-grid,
+  .vr-review-actions {
+    grid-template-columns: 1fr;
+  }
+}

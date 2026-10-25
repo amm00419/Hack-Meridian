@@ -9,6 +9,11 @@ export interface Milestone {
   amount: number;
   deadline: string;
   status: MilestoneStatus;
+
+  // Información para el estudiante y el verificador
+  approvalCriteria?: string[];
+  requiredDocuments?: string[];
+  verifierInstructions?: string;
 }
 
 export interface Scholarship {
@@ -49,6 +54,21 @@ export const mockScholarships: Scholarship[] = [
         amount: 300,
         deadline: '2026-12-20',
         status: 'pending',
+
+        approvalCriteria: [
+          'Estar matriculado en el curso académico correspondiente.',
+          'Haber superado al menos el 70 % de los créditos evaluados.',
+          'Presentar un certificado oficial de calificaciones.',
+          'Los documentos deben corresponder al estudiante beneficiario.',
+        ],
+
+        requiredDocuments: [
+          'Certificado oficial de notas',
+          'Justificante de matrícula actualizado',
+        ],
+
+        verifierInstructions:
+          'Comprobar que los documentos son legibles y corresponden al estudiante. Si falta información o algún documento es incorrecto, solicitar una corrección antes de aprobar el hito.',
       },
       {
         id: 3,
