@@ -1,0 +1,362 @@
+
+/* FORMULARIO PRINCIPAL */
+
+.ar-evidence-form {
+  margin-top: 24px;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid #dce9ef;
+  background: #f7fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.ar-evidence-form-heading {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.ar-evidence-form-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  background: #e0f4f2;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+}
+
+.ar-evidence-form-heading h4 {
+  margin: 0 0 6px;
+  color: #10243a;
+  font-size: 17px;
+}
+
+.ar-evidence-form-heading p {
+  margin: 0;
+  color: #74899d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ZONA DE SUBIDA */
+
+.ar-evidence-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 30px 20px;
+  border: 2px dashed #9acac8;
+  border-radius: 14px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: 0.2s ease;
+  text-align: center;
+}
+
+.ar-evidence-upload-area:hover,
+.ar-evidence-upload-area:focus-within {
+  background: #effaf8;
+  border-color: #00a88f;
+}
+
+.ar-evidence-upload-icon {
+  font-size: 30px;
+  color: #009e90;
+}
+
+.ar-evidence-upload-area strong {
+  color: #075f6c;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.ar-evidence-upload-area small {
+  color: #8294a6;
+  font-size: 12px;
+}
+
+.ar-evidence-upload-area input {
+  width: 100%;
+  max-width: 260px;
+  font-size: 12px;
+  color: #60768b;
+}
+
+/* OBSERVACIONES */
+
+.ar-evidence-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ar-evidence-field > span {
+  color: #10243a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ar-evidence-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid #dce6ec;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #10243a;
+  font: inherit;
+  font-size: 13px;
+  padding: 14px;
+  outline: none;
+}
+
+.ar-evidence-field textarea:focus {
+  border-color: #00a88f;
+  box-shadow: 0 0 0 3px #00a88f20;
+}
+
+/* BOTÓN DE ENVÍO */
+
+.ar-evidence-submit {
+  background: #075f6c;
+  color: white;
+  border: 0;
+  border-radius: 10px;
+  padding: 15px 20px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.ar-evidence-submit:hover:not(:disabled) {
+  background: #087f8d;
+  transform: translateY(-2px);
+}
+
+.ar-evidence-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* MENSAJES */
+
+.ar-evidence-privacy,
+.ar-evidence-demo-note {
+  margin: 0;
+  color: #8294a6;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.ar-evidence-error {
+  color: #c0392b;
+  background: #fff0ee;
+  border-radius: 9px;
+  padding: 12px;
+  font-size: 13px;
+}
+
+/* CONFIRMACIÓN */
+
+.ar-evidence-success {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid #a5e7d4;
+  border-radius: 15px;
+  background: #effcf7;
+  display: flex;
+  gap: 17px;
+  align-items: flex-start;
+}
+
+.ar-evidence-success-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: #d5f6e9;
+  color: #008d73;
+  font-size: 23px;
+}
+
+.ar-evidence-review-badge {
+  display: inline-block;
+  background: #dceefa;
+  color: #176f9d;
+  padding: 6px 11px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ar-evidence-success h4 {
+  margin: 13px 0 8px;
+  color: #10243a;
+}
+
+.ar-evidence-success p {
+  color: #60768b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ar-evidence-file-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 15px 0;
+  color: #10243a;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.ar-evidence-file-summary small {
+  color: #8294a6;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 650px) {
+  .ar-evidence-form,
+  .ar-evidence-success {
+    padding: 16px;
+  }
+
+  .ar-evidence-success {
+    flex-direction: column;
+  }
+}
+
+/* Lista de archivos seleccionados */
+.ar-evidence-selected {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ar-evidence-selected-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #10243a;
+  font-size: 14px;
+}
+
+.ar-evidence-selected-heading span {
+  background: #e0f4f2;
+  color: #008d7b;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ar-evidence-selected-list,
+.ar-evidence-submitted-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ar-evidence-selected-file,
+.ar-evidence-submitted-file {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 16px;
+  border: 1px solid #dce9ef;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.ar-evidence-file-icon {
+  font-size: 23px;
+}
+
+.ar-evidence-file-info,
+.ar-evidence-submitted-file > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ar-evidence-file-info strong,
+.ar-evidence-submitted-file strong {
+  font-size: 13px;
+  color: #10243a;
+  overflow-wrap: anywhere;
+}
+
+.ar-evidence-file-info small,
+.ar-evidence-submitted-file small {
+  font-size: 11px;
+  color: #8294a6;
+}
+
+.ar-evidence-remove {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 9px;
+  background: #fff0ee;
+  color: #d84a4a;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.ar-evidence-remove:hover:not(:disabled) {
+  background: #ffdcd7;
+}
+
+.ar-evidence-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Confirmación de entrega */
+
+.ar-evidence-success-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ar-evidence-submitted-list {
+  margin: 18px 0;
+}
+
+.ar-evidence-file-check {
+  color: #009e85;
+  font-weight: 800;
+}
+
+.ar-evidence-submission-date {
+  color: #74899d;
+  font-size: 12px;
+}
+
+.ar-evidence-observations {
+  margin: 15px 0;
+  padding: 15px;
+  background: #ffffff;
+  border: 1px solid #dce9ef;
+  border-radius: 10px;
+}
+
+.ar-evidence-observations strong {
+  color: #10243a;
+  font-size: 13px;
+}
+
+.ar-evidence-observations p {
+  margin-bottom: 0;
+  overflow-wrap: anywhere;
+}

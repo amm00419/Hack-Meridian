@@ -1,0 +1,263 @@
+
+.ar-navbar {
+  width: 100%;
+  background: #0d192b;
+  border-bottom: 1px solid #25364b;
+  position: relative;
+  z-index: 100;
+}
+
+.ar-navbar * {
+  box-sizing: border-box;
+}
+
+.ar-navbar-inner {
+  width: 100%;
+  max-width: 1450px;
+  min-height: 88px;
+  padding: 15px 32px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.ar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.ar-brand-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #04b9a5, #067d8d);
+  color: #fff;
+  font-size: 27px;
+}
+
+.ar-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ar-brand-text strong {
+  color: #fff;
+  font-size: 21px;
+  letter-spacing: -0.5px;
+}
+
+.ar-brand-text small {
+  color: #91a7bb;
+  font-size: 11px;
+}
+
+.ar-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ar-nav-link {
+  color: #a5b6c9;
+  text-decoration: none;
+  padding: 12px 17px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+}
+
+.ar-nav-link:hover {
+  color: #fff;
+  background: #192e43;
+}
+
+.ar-nav-link-active {
+  color: #50e0c7;
+  background: #143d42;
+}
+
+.ar-navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.ar-testnet-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border-radius: 30px;
+  background: #133c3a;
+  border: 1px solid #285d56;
+  color: #63e4d1;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ar-online-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #41d6ac;
+}
+
+.ar-user-container {
+  position: relative;
+}
+
+.ar-user-button {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: transparent;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 12px;
+}
+
+.ar-user-button:hover {
+  background: #1a2c40;
+}
+
+.ar-avatar {
+  width: 39px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #174a54;
+  border: 1px solid #307b7d;
+  color: #65e2d0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ar-user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.ar-user-details strong {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.ar-user-details small {
+  color: #96aabd;
+  font-size: 11px;
+}
+
+.ar-chevron {
+  color: #9eb3c6;
+  margin-left: 3px;
+}
+
+.ar-user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  width: 285px;
+  background: #14263b;
+  border: 1px solid #304459;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 18px 40px #0005;
+  color: #fff;
+}
+
+.ar-dropdown-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #304459;
+}
+
+.ar-dropdown-heading strong {
+  font-size: 15px;
+}
+
+.ar-dropdown-heading small {
+  color: #94aabd;
+}
+
+.ar-dropdown-wallet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 15px 0;
+}
+
+.ar-dropdown-wallet span {
+  color: #94aabd;
+  font-size: 12px;
+}
+
+.ar-dropdown-wallet code {
+  color: #5de0cc;
+  font-size: 13px;
+}
+
+.ar-dropdown-note {
+  color: #9fb0c0;
+  font-size: 11px;
+  line-height: 1.6;
+  padding-top: 12px;
+  border-top: 1px solid #304459;
+}
+
+@media (max-width: 950px) {
+  .ar-navbar-inner {
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 15px 20px;
+  }
+
+  .ar-nav-links {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 550px) {
+  .ar-navbar-right {
+    gap: 8px;
+  }
+
+  .ar-user-details {
+    display: none;
+  }
+
+  .ar-nav-link {
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  .ar-brand-text strong {
+    font-size: 17px;
+  }
+
+  .ar-testnet-badge {
+    font-size: 10px;
+  }
+
+  .ar-user-dropdown {
+    width: min(285px, 90vw);
+  }
+}
