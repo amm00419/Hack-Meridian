@@ -68,6 +68,15 @@ const BECA_SELECT =
   'id, contract_id, donante_addr, titulo, institucion, ' +
   'hitos (indice, titulo, descripcion, criterios, documentos_requeridos, instrucciones_verificador)';
 
+/**
+ * Id de presentación de la beca, derivado del Contract ID. No se usa la secuencia
+ * de Postgres: si el seed insertó ids fijos, la secuencia choca con ellos
+ * ("duplicate key ... becas_pkey"). Es determinista, así repetir save() no duplica.
+ */
+export function becaIdFor(contractId: string, year: number = new Date().getFullYear()): string {
+  return `SCH-${year}-${contractId.slice(-6)}`;
+}
+
 function fail(action: string, error: { message: string }): never {
   throw new Error(`${action}: ${error.message}`);
 }
@@ -117,6 +126,7 @@ export function createSupabaseStore(client: SupabaseClient): ScholarshipStore {
         .from('becas')
         .upsert(
           {
+            id: becaIdFor(input.contractId),
             contract_id: input.contractId,
             donante_addr: input.donor,
             estudiante_addr: input.beneficiary,
