@@ -211,3 +211,168 @@ fn test_beca_completada_no_admite_operaciones_adicionales() {
     assert_eq!(client.get_scholarship().status, ScholarshipStatus::Completed);
     assert_eq!(token_client.balance(&beneficiary), 300);
 }
+
+// ============================================
+// PRUEBAS DE CÓDIGOS EXACTOS DE ERROR
+// ============================================
+
+#[test]
+fn test_error_al_financiar_dos_veces() {
+    let (env, contract_id, donor, _, _, token_id) = setup(&[100, 200], &[100, 200]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    let token_client = token::TokenClient::new(&env, &token_id);
+    client.fund();
+    assert_eq!(client.try_fund(), Err(Ok(ContractError::AlreadyFunded)));
+    assert_eq!(token_client.balance(&donor), 700);
+    assert_eq!(token_client.balance(&contract_id), 300);
+}
+
+#[test]
+fn test_error_al_saltar_hito_y_repetirlo() {
+    let (env, contract_id, _, beneficiary, _, token_id) = setup(&[100, 200, 300], &[100, 200, 300]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    let token_client = token::TokenClient::new(&env, &token_id);
+    let evidence = BytesN::from_array(&env, &[17; 32]);
+    client.fund();
+    assert_eq!(client.try_approve_milestone(&1, &evidence), Err(Ok(ContractError::WrongMilestoneOrder)));
+    client.approve_milestone(&0, &evidence);
+    assert_eq!(client.try_approve_milestone(&0, &evidence), Err(Ok(ContractError::MilestoneNotPending)));
+    assert_eq!(token_client.balance(&beneficiary), 100);
+}
+
+#[test]
+fn test_error_hito_no_existente() {
+    let (env, contract_id, _, _, _, _) = setup(&[100, 200], &[100, 200]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    client.fund();
+    let evidence = BytesN::from_array(&env, &[18; 32]);
+    assert_eq!(client.try_approve_milestone(&99, &evidence), Err(Ok(ContractError::InvalidMilestoneId)));
+    assert_eq!(client.try_get_milestone(&99), Err(Ok(ContractError::InvalidMilestoneId)));
+}
+
+#[test]
+fn test_error_aprobar_vencido() {
+    let (env, contract_id, _, beneficiary, _, token_id) = setup(&[100, 200], &[100, 200]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    let token_client = token::TokenClient::new(&env, &token_id);
+    let evidence = BytesN::from_array(&env, &[19; 32]);
+    client.fund();
+    env.ledger().set_timestamp(101);
+    assert_eq!(client.try_approve_milestone(&0, &evidence), Err(Ok(ContractError::MilestoneExpired)));
+    assert_eq!(client.get_milestone(&0).status, MilestoneStatus::Pending);
+    assert_eq!(token_client.balance(&beneficiary), 0);
+}
+
+#[test]
+fn test_error_reembolso_antes_del_plazo() {
+    let (env, contract_id, donor, _, _, token_id) = setup(&[100, 200], &[100, 200]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    let token_client = token::TokenClient::new(&env, &token_id);
+    client.fund();
+    env.ledger().set_timestamp(100);
+    assert_eq!(client.try_claim_refund(), Err(Ok(ContractError::RefundNotAvailable)));
+    assert_eq!(client.get_scholarship().status, ScholarshipStatus::Active);
+    assert_eq!(token_client.balance(&contract_id), 300);
+    assert_eq!(token_client.balance(&donor), 700);
+}
+
+#[test]
+fn test_error_beca_cerrada() {
+    let (env, contract_id, _, _, _, _) = setup(&[100, 200], &[100, 200]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    let evidence = BytesN::from_array(&env, &[20; 32]);
+    client.fund();
+    client.approve_milestone(&0, &evidence);
+    client.approve_milestone(&1, &evidence);
+    assert_eq!(client.try_approve_milestone(&0, &evidence), Err(Ok(ContractError::ScholarshipClosed)));
+    assert_eq!(client.try_claim_refund(), Err(Ok(ContractError::ScholarshipClosed)));
+}
+
+// ============================================
+// PRUEBAS DE AUTORIZACION Y REVERSIÓN
+// ============================================
+
+#[test]
+fn test_fund_sin_autorizacion_no_mueve_fondos() {
+    let (env, contract_id, donor, _, _, token_id) = setup(&[100, 200], &[100, 200]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    let token_client = token::TokenClient::new(&env, &token_id);
+
+    // Desactiva mock_all_auths y no suministra autorizaciones.
+    env.set_auths(&[]);
+    assert!(client.try_fund().is_err());
+
+    assert_eq!(client.get_scholarship().status, ScholarshipStatus::Unfunded);
+    assert_eq!(token_client.balance(&donor), 1000);
+    assert_eq!(token_client.balance(&contract_id), 0);
+}
+
+#[test]
+fn test_aprobar_sin_autorizacion_no_paga() {
+    let (env, contract_id, _, beneficiary, _, token_id) = setup(&[100, 200], &[100, 200]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    let token_client = token::TokenClient::new(&env, &token_id);
+    client.fund();
+    let evidence = BytesN::from_array(&env, &[21; 32]);
+
+    env.set_auths(&[]);
+    assert!(client.try_approve_milestone(&0, &evidence).is_err());
+
+    let info = client.get_scholarship();
+    assert_eq!(info.status, ScholarshipStatus::Active);
+    assert_eq!(info.paid_amount, 0);
+    assert_eq!(info.next_milestone_id, 0);
+    assert_eq!(client.get_milestone(&0).status, MilestoneStatus::Pending);
+    assert_eq!(token_client.balance(&beneficiary), 0);
+    assert_eq!(token_client.balance(&contract_id), 300);
+}
+
+#[test]
+fn test_reembolsar_sin_autorizacion_no_devuelve() {
+    let (env, contract_id, donor, _, _, token_id) = setup(&[100, 200], &[100, 200]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    let token_client = token::TokenClient::new(&env, &token_id);
+    client.fund();
+    env.ledger().set_timestamp(101);
+
+    env.set_auths(&[]);
+    assert!(client.try_claim_refund().is_err());
+
+    let info = client.get_scholarship();
+    assert_eq!(info.status, ScholarshipStatus::Active);
+    assert_eq!(info.refunded_amount, 0);
+    assert_eq!(client.get_milestone(&0).status, MilestoneStatus::Pending);
+    assert_eq!(token_client.balance(&donor), 700);
+    assert_eq!(token_client.balance(&contract_id), 300);
+}
+
+#[test]
+fn test_fallo_token_en_fund_revierte_estado() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let donor = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let verifier = Address::generate(&env);
+    // Dirección sin contrato de token desplegado.
+    let nonexistent_token = Address::generate(&env);
+    let now = env.ledger().timestamp();
+    let inputs = vec![
+        &env,
+        MilestoneInput {
+            amount: 100,
+            deadline_timestamp: now + 100,
+        },
+    ];
+    let contract_id = env.register(
+        AidRelease,
+        (donor, beneficiary, verifier, nonexistent_token, inputs),
+    );
+    let client = AidReleaseClient::new(&env, &contract_id);
+
+    assert!(client.try_fund().is_err());
+    let info = client.get_scholarship();
+    assert_eq!(info.status, ScholarshipStatus::Unfunded);
+    assert_eq!(info.paid_amount, 0);
+    assert_eq!(info.refunded_amount, 0);
+    assert_eq!(client.get_milestone(&0).status, MilestoneStatus::Pending);
+}
