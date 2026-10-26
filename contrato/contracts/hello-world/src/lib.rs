@@ -1,7 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, panic_with_error,
+    contract, contracterror, contractevent, contractimpl, contracttype, panic_with_error,
     token, Address, BytesN, Env, Vec,
 };
 
@@ -96,8 +96,46 @@ pub enum DataKey {
     Milestones,
 }
 
+// Mantiene vivos el almacenamiento de instancia y el codigo.
+// Se ejecuta en las operaciones que modifican el contrato.
+// No sustituye a una estrategia externa de renovacion para becas largas.
+fn renew_ttl(env: &Env) {
+    let max_ttl = env.storage().max_ttl();
+    env.storage().instance().extend_ttl(max_ttl / 2, max_ttl);
+}
+
 // ============================================================
-// 5. CONTRATO AIDRELEASE
+// 5. EVENTOS PUBLICOS (SOROBAN SDK 28)
+// ============================================================
+
+#[contractevent(topics = ["funded"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Funded {
+    #[topic]
+    pub donor: Address,
+    pub amount: i128,
+}
+
+#[contractevent(topics = ["milestone_paid"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MilestonePaid {
+    #[topic]
+    pub milestone_id: u32,
+    pub amount: i128,
+    pub evidence_hash: BytesN<32>,
+}
+
+#[contractevent(topics = ["refunded"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Refunded {
+    #[topic]
+    pub donor: Address,
+    pub milestone_id: u32,
+    pub amount: i128,
+}
+
+// ============================================================
+// 6. CONTRATO AIDRELEASE
 // ============================================================
 
 #[contract]
@@ -171,6 +209,7 @@ impl AidRelease {
 
         env.storage().instance().set(&DataKey::Scholarship, &scholarship);
         env.storage().instance().set(&DataKey::Milestones, &stored_milestones);
+        renew_ttl(&env);
     }
 
     /// El donante deposita el importe íntegro de la beca.
@@ -211,6 +250,12 @@ impl AidRelease {
             &scholarship.total_amount,
         );
 
+        // Evento publicado unicamente cuando el deposito ha funcionado.
+        Funded {
+            donor: scholarship.donor.clone(),
+            amount: scholarship.total_amount,
+        }.publish(&env);
+        renew_ttl(&env);
         Ok(())
     }
 
@@ -271,7 +316,7 @@ impl AidRelease {
             .ok_or(ContractError::ArithmeticOverflow)?;
 
         milestone.status = MilestoneStatus::Paid;
-        milestone.evidence_hash = Some(evidence_hash);
+        milestone.evidence_hash = Some(evidence_hash.clone());
         milestones.set(milestone_id, milestone.clone());
 
         scholarship.paid_amount = new_paid_amount;
@@ -292,6 +337,13 @@ impl AidRelease {
             &milestone.amount,
         );
 
+        // Datos: identificador, importe, hash de la evidencia.
+        MilestonePaid {
+            milestone_id,
+            amount: milestone.amount,
+            evidence_hash,
+        }.publish(&env);
+        renew_ttl(&env);
         Ok(())
     }
 
@@ -366,6 +418,12 @@ impl AidRelease {
             &refund,
         );
 
+        Refunded {
+            donor: scholarship.donor.clone(),
+            milestone_id: next_id,
+            amount: refund,
+        }.publish(&env);
+        renew_ttl(&env);
         Ok(refund)
     }
 
@@ -401,3 +459,6 @@ impl AidRelease {
             .unwrap()
     }
 }
+
+#[cfg(test)]
+mod test;
