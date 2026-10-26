@@ -133,13 +133,23 @@ export default function ScholarshipCard({ scholarship: s, now, busy, onFund, onR
                   <summary>Ver requisitos del hito</summary>
                   {info.description && <p>{info.description}</p>}
                   <h4>Criterios de aprobación</h4>
-                  <p>{info.criteria}</p>
+                  <ul>
+                    {info.approvalCriteria.map((criterion, i) => (
+                      <li key={i}>{criterion}</li>
+                    ))}
+                  </ul>
                   <h4>Documentación requerida</h4>
                   <ul>
                     {info.requiredDocuments.map((doc, i) => (
                       <li key={i}>{doc}</li>
                     ))}
                   </ul>
+                  {info.verifierInstructions && (
+                    <>
+                      <h4>Instrucciones para el verificador</h4>
+                      <p>{info.verifierInstructions}</p>
+                    </>
+                  )}
                 </details>
               )}
             </li>

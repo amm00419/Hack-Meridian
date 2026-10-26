@@ -36,6 +36,7 @@ export type ServiceErrorCode =
   | 'AlreadyFunded'
   | 'ScholarshipClosed'
   | 'RefundNotAvailable'
+  | 'MilestoneExpired'
   | 'InvalidInput';
 
 export class ServiceError extends Error {
@@ -81,10 +82,17 @@ function milestone(id: number, amount: bigint, deadline: number, status: Milesto
 function details(
   title: string,
   description: string,
-  criteria: string,
+  approvalCriteria: string[],
   requiredDocuments: string[],
+  verifierInstructions?: string,
 ): MilestoneMeta {
-  return { title, description, criteria, requiredDocuments };
+  return {
+    title,
+    description,
+    approvalCriteria,
+    requiredDocuments,
+    ...(verifierInstructions ? { verifierInstructions } : {}),
+  };
 }
 
 function seed(now: number): DonorScholarship[] {
@@ -116,19 +124,23 @@ function seed(now: number): DonorScholarship[] {
         details(
           'Matrícula universitaria',
           'Acreditar la matrícula del curso.',
-          'El justificante debe estar emitido por la universidad e indicar el curso académico vigente.',
+          ['El justificante debe estar emitido por la universidad e indicar el curso académico vigente.'],
           ['Justificante de matrícula (PDF)'],
         ),
         details(
           'Primer trimestre',
           'Acreditar el progreso académico.',
-          'Haber superado al menos el 50 % de los créditos matriculados en el trimestre.',
+          [
+            'Haber superado al menos el 50 % de los créditos matriculados en el trimestre.',
+            'El certificado debe estar firmado o sellado por la secretaría.',
+          ],
           ['Certificado de calificaciones'],
+          'Comprueba que el curso académico del certificado coincide con el de la matrícula.',
         ),
         details(
           'Segundo trimestre',
           'Superar las asignaturas previstas.',
-          'Haber superado al menos el 50 % de los créditos del segundo trimestre.',
+          ['Haber superado al menos el 50 % de los créditos del segundo trimestre.'],
           ['Certificado de calificaciones'],
         ),
       ],
@@ -154,19 +166,19 @@ function seed(now: number): DonorScholarship[] {
         details(
           'Propuesta de investigación',
           'Presentar el plan inicial del trabajo.',
-          'La propuesta incluye objetivos, metodología y calendario, y está avalada por el tutor.',
+          ['La propuesta incluye objetivos, metodología y calendario, y está avalada por el tutor.'],
           ['Propuesta de investigación (PDF)', 'Aval del tutor'],
         ),
         details(
           'Primer prototipo',
           'Demostrar los primeros resultados.',
-          'El prototipo ejecuta el caso de uso descrito en la propuesta y se entrega con instrucciones.',
+          ['El prototipo ejecuta el caso de uso descrito en la propuesta y se entrega con instrucciones.'],
           ['Enlace al repositorio', 'Informe breve de resultados'],
         ),
         details(
           'Presentación final',
           'Defender los resultados.',
-          'Presentación realizada ante el tutor con acta firmada.',
+          ['Presentación realizada ante el tutor con acta firmada.'],
           ['Acta de la presentación'],
         ),
       ],
@@ -188,9 +200,9 @@ function seed(now: number): DonorScholarship[] {
         milestone(2, tokens(400), now - 40 * DAY, 'Paid'),
       ],
       milestoneDetails: [
-        details('Incorporación', 'Acreditar la llegada al destino.', 'Certificado de incorporación firmado por la universidad de destino.', ['Certificado de incorporación']),
-        details('Seguimiento', 'Informe intermedio.', 'Informe de seguimiento aprobado por el coordinador.', ['Informe intermedio']),
-        details('Finalización', 'Certificado de estancia.', 'Certificado de estancia con las fechas completas.', ['Certificado de estancia']),
+        details('Incorporación', 'Acreditar la llegada al destino.', ['Certificado de incorporación firmado por la universidad de destino.'], ['Certificado de incorporación']),
+        details('Seguimiento', 'Informe intermedio.', ['Informe de seguimiento aprobado por el coordinador.'], ['Informe intermedio']),
+        details('Finalización', 'Certificado de estancia.', ['Certificado de estancia con las fechas completas.'], ['Certificado de estancia']),
       ],
     },
   ];
@@ -289,6 +301,8 @@ export function describeError(error: unknown): string {
         return 'La beca ya está cerrada.';
       case 'RefundNotAvailable':
         return 'Todavía no se puede reclamar el reembolso: el siguiente hito no ha vencido.';
+      case 'MilestoneExpired':
+        return 'El plazo del primer hito ya venció: la beca no se puede financiar.';
       case 'InvalidInput':
         return error.message;
     }

@@ -202,14 +202,13 @@ export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Pro
             </label>
 
             <label htmlFor={`hito-criterios-${index}`}>
-              Criterios de aprobación (los usa el verificador)
+              Criterios de aprobación (uno por línea; los usa el verificador)
               <textarea
                 id={`hito-criterios-${index}`}
                 rows={3}
-                value={row.criteria}
-                maxLength={MILESTONE_LIMITS.criteria}
-                onChange={(e: TextRef) => setRow(index, 'criteria', e.target.value)}
-                placeholder="El justificante debe estar emitido por la universidad e indicar el curso vigente."
+                value={row.approvalCriteria}
+                onChange={(e: TextRef) => setRow(index, 'approvalCriteria', e.target.value)}
+                placeholder={'El justificante está emitido por la universidad\nIndica el curso académico vigente'}
               />
             </label>
 
@@ -221,6 +220,18 @@ export default function CreateScholarshipForm({ donor, onCreate, onCancel }: Pro
                 value={row.documents}
                 onChange={(e: TextRef) => setRow(index, 'documents', e.target.value)}
                 placeholder={'Justificante de matrícula (PDF)\nCertificado de calificaciones'}
+              />
+            </label>
+
+            <label htmlFor={`hito-instrucciones-${index}`}>
+              Instrucciones para el verificador (opcional)
+              <textarea
+                id={`hito-instrucciones-${index}`}
+                rows={2}
+                value={row.verifierInstructions}
+                maxLength={MILESTONE_LIMITS.verifierInstructions}
+                onChange={(e: TextRef) => setRow(index, 'verifierInstructions', e.target.value)}
+                placeholder="Indicaciones adicionales para quien valida este hito"
               />
             </label>
 

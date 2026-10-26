@@ -15,9 +15,11 @@ export const USDCDEMO_CONTRACT =
 export const MILESTONE_LIMITS = {
   title: 80,
   description: 500,
-  criteria: 1000,
-  document: 120,
+  criterion: 200, // longitud máxima de cada criterio
+  maxCriteria: 10,
+  document: 120, // longitud máxima de cada documento
   maxDocuments: 10,
+  verifierInstructions: 500,
 } as const;
 
 // Estados on-chain (nombres del contrato).
@@ -62,9 +64,10 @@ export interface ScholarshipMeta {
  */
 export interface MilestoneMeta {
   title: string;
-  description: string; // contexto, opcional
-  criteria: string; // criterios que usa el verificador para aprobar
+  description: string; // contexto (puede ir vacío)
+  approvalCriteria: string[]; // criterios que usa el verificador para aprobar
   requiredDocuments: string[]; // documentación que debe aportar el estudiante
+  verifierInstructions?: string; // indicaciones extra para el verificador (opcional)
 }
 
 export type DonorScholarship = Scholarship &

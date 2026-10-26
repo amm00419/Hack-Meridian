@@ -49,7 +49,7 @@ Unidades: 1 USDCDEMO = 10.000.000 unidades mínimas. Las fechas son segundos Uni
 | 25 | Estudiante sin trustline | La aprobación revierte; fondos intactos; el donante puede reembolsar | Hecho (falta el reembolso final en testnet) | Sí (instancia 3: simulación falla con el error del token trustline entry is missing) |
 | 26 | Reembolso tras vencer el siguiente hito | Se devuelve lo pendiente; hitos `Expired` y `Cancelled` | Hecho | Sí (instancia 2) |
 | 27 | Reembolso justo en el límite (`now == deadline`) | `RefundNotAvailable` | Hecho | No |
-| 28 | Reembolso antes del vencimiento | `RefundNotAvailable` | Hecho | No |
+| 28 | Reembolso antes del vencimiento | `RefundNotAvailable` | Hecho | No | Sí (instancia 3, simulación rechazada con el código 12)
 | 29 | `claim_refund` solo requiere la firma del donante | Solo firma el donante | Hecho | Sí (firma real del donante, instancia 2) |
 | 30 | Reembolso sin financiar | `NotFunded` | Hecho | No |
 | 31 | Reembolso con hitos ya pagados | Solo se devuelve lo pendiente | Hecho | No |

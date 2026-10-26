@@ -7,11 +7,11 @@ import {
 } from '../../domain/aidrelease';
 import { formatUnits, shortAddress } from '../../domain/format';
 import {
-  createMockDonorService,
   describeError,
   MOCK_DONOR_ADDRESS,
   type DonorService,
 } from '../../services/donorService';
+import { createDonorService } from '../../services/createDonorService';
 import { useWallet } from '../../wallet/useWallet';
 import WalletProvider from '../../wallet/WalletProvider';
 import ConnectCard from './ConnectCard';
@@ -21,7 +21,7 @@ import './DonorPage.css';
 
 // Hoy se usa el servicio simulado. Al integrar el contrato real solo hay que
 // cambiar esta línea por la implementación con Freighter y el SDK de Stellar.
-const service: DonorService = createMockDonorService();
+const service: DonorService = createDonorService();
 
 type Notice = { kind: 'ok' | 'error'; text: string };
 

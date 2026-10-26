@@ -10,8 +10,9 @@ import { dateInputToDeadline, isAccountAddress, isContractAddress, parseUnits } 
 export interface MilestoneFormRow {
   title: string;
   description: string;
-  criteria: string;
+  approvalCriteria: string; // un criterio por línea
   documents: string; // un documento por línea
+  verifierInstructions: string; // opcional
   amount: string; // texto del input, p. ej. "300,5"
   date: string; // texto de input type=date, "YYYY-MM-DD"
 }
@@ -28,8 +29,9 @@ export interface ScholarshipForm {
 export const EMPTY_MILESTONE_ROW: MilestoneFormRow = {
   title: '',
   description: '',
-  criteria: '',
+  approvalCriteria: '',
   documents: '',
+  verifierInstructions: '',
   amount: '',
   date: '',
 };
@@ -138,8 +140,9 @@ export function parseForm(donor: string, form: ScholarshipForm, nowSec: number):
     // --- Parte descriptiva (fuera de la cadena)
     const rowTitle = row.title.trim();
     const description = row.description.trim();
-    const criteria = row.criteria.trim();
+    const approvalCriteria = splitLines(row.approvalCriteria);
     const requiredDocuments = splitLines(row.documents);
+    const verifierInstructions = row.verifierInstructions.trim();
 
     if (rowTitle.length === 0) add('MissingField', `Hito ${n}: indica un título.`);
     else if (rowTitle.length > MILESTONE_LIMITS.title) {
@@ -148,10 +151,18 @@ export function parseForm(donor: string, form: ScholarshipForm, nowSec: number):
     if (description.length > MILESTONE_LIMITS.description) {
       add('FieldTooLong', `Hito ${n}: la descripción no puede superar ${MILESTONE_LIMITS.description} caracteres.`);
     }
-    if (criteria.length === 0) {
-      add('MissingField', `Hito ${n}: indica los criterios de aprobación para el verificador.`);
-    } else if (criteria.length > MILESTONE_LIMITS.criteria) {
-      add('FieldTooLong', `Hito ${n}: los criterios no pueden superar ${MILESTONE_LIMITS.criteria} caracteres.`);
+    if (verifierInstructions.length > MILESTONE_LIMITS.verifierInstructions) {
+      add(
+        'FieldTooLong',
+        `Hito ${n}: las instrucciones para el verificador no pueden superar ${MILESTONE_LIMITS.verifierInstructions} caracteres.`,
+      );
+    }
+    if (approvalCriteria.length === 0) {
+      add('MissingField', `Hito ${n}: indica al menos un criterio de aprobación para el verificador.`);
+    } else if (approvalCriteria.length > MILESTONE_LIMITS.maxCriteria) {
+      add('FieldTooLong', `Hito ${n}: máximo ${MILESTONE_LIMITS.maxCriteria} criterios.`);
+    } else if (approvalCriteria.some((c) => c.length > MILESTONE_LIMITS.criterion)) {
+      add('FieldTooLong', `Hito ${n}: cada criterio puede tener como máximo ${MILESTONE_LIMITS.criterion} caracteres.`);
     }
     if (requiredDocuments.length === 0) {
       add('MissingField', `Hito ${n}: indica al menos un documento que debe aportar el estudiante.`);
@@ -165,7 +176,13 @@ export function parseForm(donor: string, form: ScholarshipForm, nowSec: number):
       milestones.push({
         amount,
         deadline,
-        details: { title: rowTitle, description, criteria, requiredDocuments },
+        details: {
+          title: rowTitle,
+          description,
+          approvalCriteria,
+          requiredDocuments,
+          ...(verifierInstructions.length > 0 ? { verifierInstructions } : {}),
+        },
       });
     }
   });
