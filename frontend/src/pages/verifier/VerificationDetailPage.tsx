@@ -6,7 +6,12 @@ import {
   requestAccess,
 } from '@stellar/freighter-api';
 import { supabase } from '../../services/supabase';
-import { approveMilestone, getScholarship, describeStellarError } from '../../lib/stellar';
+import {
+  approveMilestone,
+  getScholarship,
+  describeStellarError,
+  hasUsdcDemoTrustline,
+} from '../../lib/stellar';
 import './VerificationDetailPage.css';
 
 type ScholarshipRow = {
@@ -284,8 +289,31 @@ export default function VerificationDetailPage() {
         if (!current || current.status !== 'Pending') throw new Error('El hito no está pendiente en la blockchain.');
         if (current.amount !== BigInt(milestone.importe)) throw new Error('El importe del hito no coincide con el contrato.');
         if (current.deadline !== Number(milestone.plazo)) throw new Error('El vencimiento del hito no coincide con el contrato.');
-        if (current.deadline <= Math.floor(Date.now() / 1000)) throw new Error('El plazo del hito ha vencido.');
-        if (!/^[a-f0-9]{64}$/i.test(detail.submission.hash_conjunto)) throw new Error('Hash de evidencia inválido.');
+        const now = Math.floor(Date.now() / 1000);
+
+        if (current.deadline < now) {
+          throw new Error('El plazo del hito ha vencido. Ya no se puede aprobar.');
+        }
+
+        if (current.deadline - now < 300) {
+          throw new Error(
+            'Quedan menos de 5 minutos para el vencimiento. No es seguro iniciar la aprobación.'
+          );
+        }
+
+        if (!/^[a-f0-9]{64}$/i.test(detail.submission.hash_conjunto)) {
+          throw new Error('Hash de evidencia inválido.');
+        }
+
+        const hasTrustline = await hasUsdcDemoTrustline(
+          scholarship.estudiante_addr
+        );
+
+        if (!hasTrustline) {
+          throw new Error(
+            'El estudiante no tiene la trustline USDCDEMO autorizada. Debe añadir el activo en Freighter antes de recibir el pago.'
+          );
+        }
         if (!cancelled) { setChainReady(true); setChainReason('Contrato activo y datos del hito verificados.'); }
       } catch (e) {
         if (!cancelled) setChainReason(describeStellarError(e));
@@ -307,6 +335,20 @@ export default function VerificationDetailPage() {
           chain.nextMilestoneId !== detail.milestone.indice ||
           chain.milestones[detail.milestone.indice]?.status !== 'Pending') {
         throw new Error('El contrato ha cambiado: recarga la página antes de aprobar.');
+      }
+      const current = chain.milestones.find(m => m.id === detail.milestone.indice);
+      if (!current || current.deadline !== Number(detail.milestone.plazo) ||
+          current.amount !== BigInt(detail.milestone.importe)) {
+        throw new Error('Los datos del hito han cambiado: recarga la página.');
+      }
+      const secondsRemaining = current.deadline - Math.floor(Date.now() / 1000);
+      if (secondsRemaining < 300) {
+        throw new Error(secondsRemaining < 0
+          ? 'El plazo del hito ha vencido.'
+          : 'Quedan menos de cinco minutos para el vencimiento. No es seguro aprobar ahora.');
+      }
+      if (!(await hasUsdcDemoTrustline(detail.scholarship.estudiante_addr))) {
+        throw new Error('El estudiante no tiene la trustline USDCDEMO autorizada.');
       }
       const hash = await approveMilestone(
         detail.scholarship.contract_id,
