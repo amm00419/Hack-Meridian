@@ -1,4 +1,3 @@
-
 import { Link, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
@@ -7,6 +6,7 @@ import {
   requestAccess,
 } from '@stellar/freighter-api';
 import { supabase } from '../../services/supabase';
+import { approveMilestone, getScholarship, describeStellarError } from '../../lib/stellar';
 import './VerificationDetailPage.css';
 
 type ScholarshipRow = {
@@ -15,6 +15,10 @@ type ScholarshipRow = {
   institucion: string;
   moneda: string;
   verificador_addr: string;
+  estudiante_addr: string;
+  donante_addr: string;
+  token_addr: string;
+  contract_id: string | null;
 };
 
 type MilestoneRow = {
@@ -84,6 +88,9 @@ export default function VerificationDetailPage() {
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [chainReady, setChainReady] = useState(false);
+  const [chainReason, setChainReason] = useState('Comprobando contrato...');
+  const [txHash, setTxHash] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -128,7 +135,7 @@ export default function VerificationDetailPage() {
         } = await supabase
           .from('becas')
           .select(
-            'id,titulo,institucion,moneda,verificador_addr'
+            'id,titulo,institucion,moneda,verificador_addr,estudiante_addr,donante_addr,token_addr,contract_id'
           )
           .eq('id', id)
           .single();
@@ -250,6 +257,94 @@ export default function VerificationDetailPage() {
       cancelled = true;
     };
   }, [id, milestoneId]);
+
+  // Nunca se aprueba basándose solo en el estado de Supabase.
+  useEffect(() => {
+    let cancelled = false;
+    async function validate() {
+      setChainReady(false);
+      if (!detail?.submission || detail.review || detail.milestone.estado !== 'submitted') {
+        setChainReason('Este hito no tiene una presentación pendiente de revisión.');
+        return;
+      }
+      const { scholarship, milestone } = detail;
+      if (!scholarship.contract_id) {
+        setChainReason('Esta beca todavía no tiene un contrato Soroban asociado.');
+        return;
+      }
+      try {
+        const chain = await getScholarship(scholarship.contract_id);
+        if (chain.verifier !== address || chain.beneficiary !== scholarship.estudiante_addr ||
+            chain.donor !== scholarship.donante_addr || chain.token !== scholarship.token_addr) {
+          throw new Error('Las direcciones o el token de Supabase no coinciden con el contrato.');
+        }
+        if (chain.status !== 'Active') throw new Error(`El contrato está en estado ${chain.status}, no Active.`);
+        if (chain.nextMilestoneId !== milestone.indice) throw new Error('Este no es el siguiente hito pendiente del contrato.');
+        const current = chain.milestones.find(m => m.id === milestone.indice);
+        if (!current || current.status !== 'Pending') throw new Error('El hito no está pendiente en la blockchain.');
+        if (current.amount !== BigInt(milestone.importe)) throw new Error('El importe del hito no coincide con el contrato.');
+        if (current.deadline !== Number(milestone.plazo)) throw new Error('El vencimiento del hito no coincide con el contrato.');
+        if (current.deadline <= Math.floor(Date.now() / 1000)) throw new Error('El plazo del hito ha vencido.');
+        if (!/^[a-f0-9]{64}$/i.test(detail.submission.hash_conjunto)) throw new Error('Hash de evidencia inválido.');
+        if (!cancelled) { setChainReady(true); setChainReason('Contrato activo y datos del hito verificados.'); }
+      } catch (e) {
+        if (!cancelled) setChainReason(describeStellarError(e));
+      }
+    }
+    void validate();
+    return () => { cancelled = true; };
+  }, [detail, address]);
+
+  async function approve() {
+    if (!detail?.submission || !detail.scholarship.contract_id || !chainReady || saving || detail.review) return;
+    setSaving(true);
+    setError('');
+    setMessage('Preparando la transacción y solicitando la firma en Freighter...');
+    try {
+      // Revalidación inmediata antes de abrir Freighter.
+      const chain = await getScholarship(detail.scholarship.contract_id);
+      if (chain.status !== 'Active' || chain.verifier !== address ||
+          chain.nextMilestoneId !== detail.milestone.indice ||
+          chain.milestones[detail.milestone.indice]?.status !== 'Pending') {
+        throw new Error('El contrato ha cambiado: recarga la página antes de aprobar.');
+      }
+      const hash = await approveMilestone(
+        detail.scholarship.contract_id,
+        address,
+        detail.milestone.indice,
+        detail.submission.hash_conjunto,
+        phase => setMessage(phase.phase === 'signing' ? 'Confirma la firma en Freighter...' :
+          phase.phase === 'sending' ? 'Esperando confirmación de Stellar...' : phase.message ?? '')
+      );
+      setTxHash(hash);
+      // La transacción ya está confirmada. Si falla Supabase, conservamos el hash visible.
+      const { error: reviewError } = await supabase.from('revisiones').insert({
+        presentacion_id: detail.submission.id,
+        verificador_addr: address,
+        decision: 'approved',
+        comentario: comment.trim() || null,
+        tx_hash: hash,
+      });
+      if (reviewError) throw new Error(`Pago confirmado (${hash}), pero no se guardó la revisión: ${reviewError.message}`);
+      const { error: milestoneError } = await supabase.from('hitos')
+        .update({ estado: 'paid', tx_hash: hash })
+        .eq('id', detail.milestone.id).eq('estado', 'submitted');
+      if (milestoneError) throw new Error(`Pago confirmado (${hash}), pero no se actualizó el hito: ${milestoneError.message}`);
+      setDetail(previous => previous ? {
+        ...previous,
+        milestone: { ...previous.milestone, estado: 'paid' },
+        review: { decision: 'approved', comentario: comment.trim() || null,
+          tx_hash: hash, creado_en: new Date().toISOString() },
+      } : previous);
+      setChainReady(false);
+      setMessage(`Pago confirmado en Stellar. Transacción: ${hash}`);
+    } catch (e) {
+      setError(describeStellarError(e));
+      setMessage('');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function openEvidence(file: EvidenceRow) {
     setError('');
@@ -732,10 +827,11 @@ export default function VerificationDetailPage() {
               <button
                 type="button"
                 className="vr-approve-button"
-                disabled
-                title="Pendiente de integrar la firma del contrato Soroban"
+                disabled={!chainReady || saving || !submission || !!review}
+                title={chainReason}
+                onClick={() => void approve()}
               >
-                ✓ Aprobar hito
+                {saving ? 'Procesando...' : '✓ Aprobar hito'}
               </button>
 
               <button
@@ -757,12 +853,17 @@ export default function VerificationDetailPage() {
             </div>
 
             <p className="vr-action-note">
-              La aprobación requiere una transacción
-              válida del contrato Soroban. La solicitud
-              de correcciones se registra en Supabase
-              (demo).
+              {chainReason} La aprobación solo se registra después de confirmar
+              la transacción en Stellar Testnet. Las correcciones se guardan en Supabase (demo).
             </p>
           </>
+        )}
+
+        {txHash && (
+          <p role="status" style={{ overflowWrap: 'anywhere' }}>
+            Transacción Stellar: <a href={`https://stellar.expert/explorer/testnet/tx/${txHash}`}
+              target="_blank" rel="noopener noreferrer">{txHash}</a>
+          </p>
         )}
 
         {error && (

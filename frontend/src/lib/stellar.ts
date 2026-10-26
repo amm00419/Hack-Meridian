@@ -396,7 +396,7 @@ interface RawScholarship {
 interface RawMilestone {
   id: number;
   amount: bigint;
-  deadline: bigint | number;
+  deadline_timestamp: bigint | number;
   status: unknown;
   evidence_hash?: Uint8Array | null;
 }
@@ -411,7 +411,7 @@ export async function getScholarship(contractId: string): Promise<OnChainScholar
   const milestones: Milestone[] = rawMilestones.map((m) => ({
     id: Number(m.id),
     amount: BigInt(m.amount),
-    deadline: Number(m.deadline),
+    deadline: Number(m.deadline_timestamp),
     status: enumName(m.status) as MilestoneStatus,
     evidenceHash: m.evidence_hash ? toHex(new Uint8Array(m.evidence_hash)) : null,
   }));
