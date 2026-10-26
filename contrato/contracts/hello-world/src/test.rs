@@ -152,3 +152,62 @@ fn test_limite_plazo_y_reembolso() {
     assert_eq!(token_client.balance(&contract_id), 0);
     assert!(client.try_claim_refund().is_err());
 }
+
+// ============================================
+// PRUEBAS ADICIONALES DE SEGURIDAD
+// ============================================
+
+#[test]
+fn test_no_pagar_sin_financiar() {
+    let (env, contract_id, _, beneficiary, _, token_id) =
+        setup(&[100, 200], &[100, 200]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    let token_client = token::TokenClient::new(&env, &token_id);
+    let evidence = BytesN::from_array(&env, &[11; 32]);
+
+    assert!(client.try_approve_milestone(&0, &evidence).is_err());
+    assert_eq!(client.get_scholarship().status, ScholarshipStatus::Unfunded);
+    assert_eq!(client.get_scholarship().paid_amount, 0);
+    assert_eq!(client.get_milestone(&0).status, MilestoneStatus::Pending);
+    assert_eq!(token_client.balance(&beneficiary), 0);
+}
+
+#[test]
+fn test_hito_inexistente_no_altera_fondos() {
+    let (env, contract_id, _, beneficiary, _, token_id) =
+        setup(&[100, 200], &[100, 200]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    let token_client = token::TokenClient::new(&env, &token_id);
+    let evidence = BytesN::from_array(&env, &[12; 32]);
+
+    client.fund();
+    assert!(client.try_approve_milestone(&99, &evidence).is_err());
+    assert!(client.try_get_milestone(&99).is_err());
+    assert_eq!(client.get_scholarship().paid_amount, 0);
+    assert_eq!(client.get_scholarship().next_milestone_id, 0);
+    assert_eq!(token_client.balance(&contract_id), 300);
+    assert_eq!(token_client.balance(&beneficiary), 0);
+}
+
+#[test]
+fn test_beca_completada_no_admite_operaciones_adicionales() {
+    let (env, contract_id, _, beneficiary, _, token_id) =
+        setup(&[100, 200], &[100, 200]);
+    let client = AidReleaseClient::new(&env, &contract_id);
+    let token_client = token::TokenClient::new(&env, &token_id);
+    let evidence = BytesN::from_array(&env, &[13; 32]);
+
+    client.fund();
+    client.approve_milestone(&0, &evidence);
+    client.approve_milestone(&1, &evidence);
+    assert_eq!(client.get_scholarship().status, ScholarshipStatus::Completed);
+    assert_eq!(client.get_scholarship().paid_amount, 300);
+    assert_eq!(token_client.balance(&beneficiary), 300);
+    assert_eq!(token_client.balance(&contract_id), 0);
+
+    assert!(client.try_approve_milestone(&1, &evidence).is_err());
+    env.ledger().set_timestamp(201);
+    assert!(client.try_claim_refund().is_err());
+    assert_eq!(client.get_scholarship().status, ScholarshipStatus::Completed);
+    assert_eq!(token_client.balance(&beneficiary), 300);
+}
