@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { getAddress, getNetwork } from '@stellar/freighter-api';
+import { supabase } from '../../services/supabase';
+import { getScholarships } from '../../services/scholarshipsService';
 import {
-  mockScholarships,
   getPaidAmount,
   type MilestoneStatus,
   type Scholarship,
@@ -30,62 +33,37 @@ const formatDate = (date: string) =>
     year: 'numeric',
   });
 
-// Información adicional para la demostración.
-// Después se obtendrá de la API y del contrato.
-const scholarshipInformation: Record<
-  string,
-  {
-    description: string;
-    requirements: string[];
-    verifier: string;
-  }
-> = {
-  'SCH-2026-001': {
-    description:
-      'Ayuda destinada a financiar gastos académicos durante el curso universitario. El importe se libera progresivamente conforme el estudiante acredita los objetivos establecidos.',
-    requirements: [
-      'Mantener la matrícula universitaria activa.',
-      'Presentar las evidencias académicas antes de cada fecha límite.',
-      'Superar los hitos establecidos en el acuerdo de financiación.',
-    ],
-    verifier: 'Entidad verificadora AidRelease',
-  },
-  'SCH-2026-002': {
-    description:
-      'Programa de financiación para estudiantes que desarrollan proyectos de investigación en inteligencia artificial.',
-    requirements: [
-      'Presentar los resultados de investigación previstos.',
-      'Entregar los prototipos y documentos requeridos.',
-      'Cumplir los plazos establecidos para cada hito.',
-    ],
-    verifier: 'Comité académico de investigación',
-  },
-  'SCH-2025-003': {
-    description:
-      'Ayuda de movilidad académica destinada a cubrir parte de los gastos de una estancia universitaria internacional.',
-    requirements: [
-      'Acreditar la incorporación a la universidad de destino.',
-      'Presentar los informes de seguimiento.',
-      'Entregar el certificado final de estancia.',
-    ],
-    verifier: 'Oficina de Relaciones Internacionales',
-  },
-  'SCH-2025-004': {
-    description:
-      'Programa de reconocimiento del rendimiento académico mediante pagos condicionados al cumplimiento de objetivos.',
-    requirements: [
-      'Mantener el rendimiento académico exigido.',
-      'Presentar los justificantes de seguimiento.',
-      'Cumplir los objetivos dentro de los plazos establecidos.',
-    ],
-    verifier: 'Comité de evaluación académica',
-  },
+type ScholarshipInformation = {
+  description: string;
+  requirements: string[];
+  verifier: string;
+  student: string;
+  contractId: string | null;
 };
 
-function InformationSection({ scholarship }: { scholarship: Scholarship }) {
-  const information = scholarshipInformation[scholarship.id];
+async function getScholarshipInformation(id: string): Promise<ScholarshipInformation> {
+  const { data, error } = await supabase
+    .from('becas')
+    .select('descripcion,requisitos,verificador_nombre,estudiante_alias,contract_id')
+    .eq('id', id)
+    .single();
 
-  if (!information) return null;
+  if (error) throw new Error(error.message);
+  const rawRequirements: unknown = data.requisitos;
+  const requirements = Array.isArray(rawRequirements)
+    ? rawRequirements.filter((value): value is string => typeof value === 'string')
+    : [];
+
+  return {
+    description: data.descripcion ?? 'Sin descripción disponible.',
+    requirements,
+    verifier: data.verificador_nombre ?? 'Entidad verificadora',
+    student: data.estudiante_alias ?? 'Estudiante asignado',
+    contractId: data.contract_id ?? null,
+  };
+}
+
+function InformationSection({ scholarship, information }: { scholarship: Scholarship; information: ScholarshipInformation }) {
 
   return (
     <section className="beneficiary-content-card">
@@ -110,7 +88,7 @@ function InformationSection({ scholarship }: { scholarship: Scholarship }) {
 
         <div className="ar-detail-info-item">
           <span>Beneficiario</span>
-          <strong>Estudiante asignado</strong>
+          <strong>{information.student}</strong>
         </div>
 
         <div className="ar-detail-info-item">
@@ -150,15 +128,49 @@ function InformationSection({ scholarship }: { scholarship: Scholarship }) {
 export default function ScholarshipDetailPage() {
   const { id } = useParams<{ id: string }>();
 
-  const scholarship = mockScholarships.find((item) => item.id === id);
+  const [scholarship, setScholarship] = useState<Scholarship | null>(null);
+  const [information, setInformation] = useState<ScholarshipInformation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!scholarship) {
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+        const network = await getNetwork();
+        if (network.error || network.network !== 'TESTNET') {
+          throw new Error('Selecciona TESTNET en Freighter.');
+        }
+        const wallet = await getAddress();
+        if (wallet.error || !wallet.address) {
+          throw new Error('Conecta Freighter para consultar esta beca.');
+        }
+        const scholarships = await getScholarships(wallet.address);
+        const found = scholarships.find((item) => item.id === id) ?? null;
+        if (!found) throw new Error('Esta beca no existe o no está asignada a tu billetera.');
+        const details = await getScholarshipInformation(found.id);
+        if (!cancelled) {
+          setScholarship(found);
+          setInformation(details);
+        }
+      } catch (cause) {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Error al cargar la beca.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  if (loading || error || !scholarship || !information) {
     return (
       <main className="beneficiary-dashboard">
-        <Link to="/beneficiary" className="beneficiary-back-link">
-          ← Volver a mis ayudas
-        </Link>
-        <h1>Ayuda no encontrada</h1>
+        <Link to="/beneficiary" className="beneficiary-back-link">← Volver a mis ayudas</Link>
+        <h1>{loading ? 'Cargando detalles...' : error ?? 'Ayuda no encontrada'}</h1>
       </main>
     );
   }
@@ -299,7 +311,7 @@ export default function ScholarshipDetailPage() {
       </section>
 
       {/* INFORMACIÓN GENERAL */}
-      <InformationSection scholarship={scholarship} />
+      <InformationSection scholarship={scholarship} information={information} />
 
       {/* AVISO DE INCUMPLIMIENTO */}
       {scholarship.status === 'failed' && (
@@ -500,19 +512,19 @@ export default function ScholarshipDetailPage() {
 
           <div className="ar-detail-info-item">
             <span>Contrato de la beca</span>
-            <strong>Pendiente de despliegue</strong>
+            <strong>{information.contractId ?? 'Pendiente de despliegue'}</strong>
           </div>
 
           <div className="ar-detail-info-item">
             <span>Estado de integración</span>
-            <strong>Datos simulados</strong>
+            <strong>Supabase · Testnet (demo)</strong>
           </div>
         </div>
 
         <p className="ar-detail-blockchain-note">
-          Esta pantalla utiliza información ficticia.
-          Los contratos y transacciones reales de Testnet
-          se incorporarán cuando estén disponibles.
+          Esta pantalla consulta datos de demostración en Supabase.
+          Los pagos mostrados proceden de los estados guardados en Supabase,
+          no de una verificación de transacciones en cadena.
         </p>
       </section>
 

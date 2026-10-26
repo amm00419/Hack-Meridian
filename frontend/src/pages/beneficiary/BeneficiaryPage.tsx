@@ -1,11 +1,19 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getAddress, getNetwork } from '@stellar/freighter-api';
+
 import {
-  mockScholarships,
   getPaidAmount,
   type Scholarship,
 } from '../../services/mockScholarships';
+
+import { getScholarships } from '../../services/scholarshipsService';
+
 import './BeneficiaryPage.css';
 
+// ==========================================
+// TARJETA DE BECA
+// ==========================================
 
 function ScholarshipCard({ scholarship }: { scholarship: Scholarship }) {
   // Calcular los importes de la ayuda
@@ -155,26 +163,159 @@ function ScholarshipCard({ scholarship }: { scholarship: Scholarship }) {
   );
 }
 
+// ==========================================
+// PANEL DEL ESTUDIANTE
+// ==========================================
 
 export default function BeneficiaryPage() {
-  const active = mockScholarships.filter((item) => item.status === 'active');
-  const finished = mockScholarships.filter(
+  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+
+  // Cargar las becas reales desde Supabase
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadScholarships() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // 1. Comprobar que Freighter está en Testnet
+        const networkResult = await getNetwork();
+
+        if (networkResult.error) {
+          throw new Error(networkResult.error);
+        }
+
+        if (networkResult.network !== 'TESTNET') {
+          throw new Error(
+            'Cambia Freighter a Testnet para consultar tus becas.'
+          );
+        }
+
+        // 2. Obtener la dirección pública de Freighter
+        const addressResult = await getAddress();
+
+        if (addressResult.error || !addressResult.address) {
+          throw new Error(
+            'Conecta tu billetera Freighter para consultar tus becas.'
+          );
+        }
+
+        const address = addressResult.address;
+
+        // 3. Consultar las becas asociadas a esa dirección
+        const data = await getScholarships(address);
+
+        if (!cancelled) {
+          setWalletAddress(address);
+          setScholarships(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'No se pudieron cargar las becas.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadScholarships();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Separar las ayudas activas de las finalizadas
+  const active = scholarships.filter(
+    (item) => item.status === 'active'
+  );
+
+  const finished = scholarships.filter(
     (item) => item.status !== 'active'
   );
 
-  const totalReceived = mockScholarships.reduce(
+  // Calcular el total recibido
+  const totalReceived = scholarships.reduce(
     (sum, item) => sum + getPaidAmount(item),
     0
   );
 
+  // ==========================================
+  // ESTADO DE CARGA
+  // ==========================================
+
+  if (loading) {
+    return (
+      <main className="ar-beneficiary-home">
+        <section className="ar-welcome">
+          <div>
+            <h1>Cargando tus becas...</h1>
+            <p>
+              Consultando Supabase y tu billetera Freighter.
+            </p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  // ==========================================
+  // ESTADO DE ERROR
+  // ==========================================
+
+  if (error) {
+    return (
+      <main className="ar-beneficiary-home">
+        <section className="ar-welcome">
+          <div>
+            <h1>No se pudieron cargar tus becas</h1>
+            <p role="alert">{error}</p>
+
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+            >
+              Reintentar
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  // ==========================================
+  // PANEL PRINCIPAL
+  // ==========================================
+
   return (
     <main className="ar-beneficiary-home">
+      {/* CABECERA Y ESTADÍSTICAS */}
       <section className="ar-welcome">
         <div>
-          <h1>Hola, Adrián 👋</h1>
+          <h1>Hola, estudiante 👋</h1>
+
           <p>
-            Consulta el estado de todas tus ayudas y sigue tu progreso académico.
+            Consulta el estado de todas tus ayudas y sigue tu
+            progreso académico.
           </p>
+
+          {walletAddress && (
+            <p>
+              Billetera Freighter:{' '}
+              {walletAddress.slice(0, 5)}...
+              {walletAddress.slice(-4)} · TESTNET
+            </p>
+          )}
         </div>
 
         <div className="ar-welcome-stats">
@@ -182,51 +323,82 @@ export default function BeneficiaryPage() {
             <strong>{active.length}</strong>
             <span>Ayudas en curso</span>
           </div>
+
           <div>
             <strong>{finished.length}</strong>
             <span>Ayudas finalizadas</span>
           </div>
+
           <div>
-            <strong>{totalReceived.toLocaleString('es-ES')}</strong>
-            <span>USDCDEMO recibidos</span>
+            <strong>
+              {totalReceived.toLocaleString('es-ES')}
+            </strong>
+            <span>USDCDEMO recibidos (demo)</span>
           </div>
         </div>
       </section>
 
+      {/* AYUDAS ACTIVAS */}
       <section className="ar-aid-section">
         <div className="ar-aid-section-heading">
           <span className="ar-section-icon">⌛</span>
+
           <div>
             <h2>Ayudas pendientes</h2>
-            <p>Ayudas en las que estás trabajando actualmente.</p>
+            <p>
+              Ayudas en las que estás trabajando actualmente.
+            </p>
           </div>
         </div>
 
         <div className="ar-scholarship-grid">
           {active.map((scholarship) => (
-            <ScholarshipCard key={scholarship.id} scholarship={scholarship} />
+            <ScholarshipCard
+              key={scholarship.id}
+              scholarship={scholarship}
+            />
           ))}
         </div>
+
+        {active.length === 0 && (
+          <p>
+            No tienes ayudas activas asociadas a esta billetera.
+          </p>
+        )}
       </section>
 
+      {/* AYUDAS FINALIZADAS */}
       <section className="ar-aid-section">
         <div className="ar-aid-section-heading">
-          <span className="ar-section-icon ar-section-icon-success">✓</span>
+          <span className="ar-section-icon ar-section-icon-success">
+            ✓
+          </span>
+
           <div>
             <h2>Ayudas finalizadas</h2>
-            <p>Ayudas que ya han concluido.</p>
+            <p>
+              Ayudas que ya han concluido.
+            </p>
           </div>
         </div>
 
         <div className="ar-scholarship-grid">
           {finished.map((scholarship) => (
-            <ScholarshipCard key={scholarship.id} scholarship={scholarship} />
+            <ScholarshipCard
+              key={scholarship.id}
+              scholarship={scholarship}
+            />
           ))}
         </div>
+
+        {finished.length === 0 && (
+          <p>No tienes ayudas finalizadas.</p>
+        )}
       </section>
 
+      {/* PIE DE PÁGINA */}
       <footer className="ar-home-footer">
-        AidRelease · Datos simulados para demostración · Stellar Testnet
+        AidRelease · Datos de Supabase para demostración · Stellar Testnet
       </footer>
     </main>
   );
